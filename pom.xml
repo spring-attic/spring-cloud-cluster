@@ -58,6 +58,10 @@
 			<artifactId>spring-boot-starter-integration</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-remote-shell</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-config-client</artifactId>
 			<version>1.0.0.BUILD-SNAPSHOT</version>
@@ -98,6 +102,16 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.7</java.version>
+		<start-class>org.springframework.cloud.cluster.zk.leader.SimpleTestApplication</start-class>
 	</properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
 
 </project>

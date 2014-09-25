@@ -27,6 +27,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.cloud.cluster.leader.Candidate;
 import org.springframework.cloud.cluster.leader.Context;
+import org.springframework.cloud.cluster.zk.leader.LeaderInitiator;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Bean;
@@ -75,6 +76,8 @@ public class SimpleTestApplication {
 
 		private volatile ApplicationContext applicationContext;
 
+		private volatile Context leaderContext;
+
 		@Override
 		public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 			this.applicationContext = applicationContext;
@@ -93,11 +96,16 @@ public class SimpleTestApplication {
 		@Override
 		public void onGranted(Context ctx) throws InterruptedException {
 			logger.info("{} has been granted leadership; context: {}", this, ctx);
+			leaderContext = ctx;
 		}
 
 		@Override
 		public void onRevoked(Context ctx) {
 			logger.info("{} leadership has been revoked", this, ctx);
+		}
+
+		public Context getLeaderContext() {
+			return leaderContext;
 		}
 
 		@Override

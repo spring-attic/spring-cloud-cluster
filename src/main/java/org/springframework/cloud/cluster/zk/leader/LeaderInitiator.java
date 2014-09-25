@@ -34,28 +34,33 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 
 	private final Candidate candidate;
 
-	private final LeaderSelector leaderSelector;
+	private volatile LeaderSelector leaderSelector;
+
+	private volatile boolean running;
 
 	public LeaderInitiator(CuratorFramework client, Candidate candidate) {
 		this.client = client;
 		this.candidate = candidate;
-		this.leaderSelector = new LeaderSelector(client, buildLeaderPath(), new LeaderListener());
-		this.leaderSelector.setId(candidate.getId());
 	}
 
 	@Override
 	public void start() {
+		leaderSelector = new LeaderSelector(client, buildLeaderPath(), new LeaderListener());
+		leaderSelector.setId(candidate.getId());
 		leaderSelector.start();
+
+		running = true;
 	}
 
 	@Override
 	public void stop() {
 		leaderSelector.close();
+		running = false;
 	}
 
 	@Override
 	public boolean isRunning() {
-		throw new UnsupportedOperationException();
+		return running;
 	}
 
 	@Override
