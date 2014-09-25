@@ -4,6 +4,11 @@ import org.crsh.cli.Usage
 import org.crsh.cli.Command
 import org.crsh.command.InvocationContext
 
+/**
+ * Custom CRaSSH command for interacting with the Curator/ZooKeeper
+ * leadership utility in the sample app
+ * {@link org.springframework.cloud.cluster.zk.leader.SimpleTestApplication}.
+ */
 @Usage("Leadership commands")
 class leader {
 
@@ -13,7 +18,14 @@ class leader {
 		def factory = context.attributes["spring.beanfactory"]
 		def candidate = factory.getBean("candidate")
 
-		candidate.leaderContext.renounce()
+		def leaderContext = candidate.leaderContext;
+		if (leaderContext == null) {
+			context.writer.println(sprintf("candidate %s is not leader", candidate.getId()))
+		}
+		else {
+			candidate.leaderContext.renounce()
+			context.writer.println(sprintf("candidate %s has renounced leadership", candidate.getId()))
+		}
 	}
 
 	@Usage("Start leadership candidacy")
@@ -33,6 +45,5 @@ class leader {
 
 		initiator.stop()
 	}
-
 
 }

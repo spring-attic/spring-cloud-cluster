@@ -17,12 +17,33 @@
 package org.springframework.cloud.cluster.leader;
 
 /**
+ * Interface that defines the context for candidate leadership.
+ * Instances of this object are passed to {@link Candidate candidates}
+ * upon granting and revoking of leadership.
+ *
  * @author Patrick Peralta
  */
 public interface Context {
-	String getRole();
-	String getId();
-	boolean isLeader();
-	void renounce();
 
+	/**
+	 * @see Candidate#getRole
+	 */
+	String getRole();
+
+	/**
+	 * @see Candidate#getId
+	 */
+	String getId();
+
+	/**
+	 * @return true if the {@link Candidate} this context was
+	 *         passed to is the leader
+	 */
+	boolean isLeader();
+
+	/**
+	 * Causes the {@link Candidate} this context was passed to
+	 * to relinquish leadership.
+	 */
+	void renounce();
 }

@@ -27,37 +27,75 @@ import org.springframework.cloud.cluster.leader.Context;
 import org.springframework.context.Lifecycle;
 
 /**
+ * Bootstrap leadership {@link org.springframework.cloud.cluster.leader.Candidate candidates}
+ * with ZooKeeper/Curator. Upon construction, {@link #start} must be invoked to
+ * register the candidate for leadership election.
+ *
  * @author Patrick Peralta
  */
 public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableBean {
+
+	/**
+	 * Curator client.
+	 */
 	private final CuratorFramework client;
 
+	/**
+	 * Candidate for leader election.
+	 */
 	private final Candidate candidate;
 
+	/**
+	 * Curator utility for selecting leaders.
+	 */
 	private volatile LeaderSelector leaderSelector;
 
+	/**
+	 * Flag that indicates whether the leadership election for
+	 * this {@link #candidate} is running.
+	 */
 	private volatile boolean running;
 
+	/**
+	 * Construct a {@link LeaderInitiator}.
+	 *
+	 * @param client     Curator client
+	 * @param candidate  leadership election candidate
+	 */
 	public LeaderInitiator(CuratorFramework client, Candidate candidate) {
 		this.client = client;
 		this.candidate = candidate;
 	}
 
+	/**
+	 * Start the registration of the {@link #candidate} for leader election.
+	 */
 	@Override
-	public void start() {
-		leaderSelector = new LeaderSelector(client, buildLeaderPath(), new LeaderListener());
-		leaderSelector.setId(candidate.getId());
-		leaderSelector.start();
+	public synchronized void start() {
+		if (!running) {
+			leaderSelector = new LeaderSelector(client, buildLeaderPath(), new LeaderListener());
+			leaderSelector.setId(candidate.getId());
+			leaderSelector.start();
 
-		running = true;
+			running = true;
+		}
 	}
 
+	/**
+	 * Stop the registration of the {@link #candidate} for leader election.
+	 * If the candidate is currently leader, its leadership will be revoked.
+	 */
 	@Override
-	public void stop() {
-		leaderSelector.close();
-		running = false;
+	public synchronized void stop() {
+		if (running) {
+			leaderSelector.close();
+			running = false;
+		}
 	}
 
+	/**
+	 * @return true if leadership election for this {@link #candidate} is running
+	 */
 	@Override
 	public boolean isRunning() {
 		return running;
@@ -73,10 +111,16 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		stop();
 	}
 
+	/**
+	 * @return the ZooKeeper path used for leadership election by Curator
+	 */
 	private String buildLeaderPath() {
 		return String.format("/spring-cloud/leader/%s", candidate.getRole());
 	}
 
+	/**
+	 * Implementation of Curator leadership election listener.
+	 */
 	class LeaderListener extends LeaderSelectorListenerAdapter {
 
 		@Override
@@ -85,6 +129,10 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 
 			try {
 				candidate.onGranted(context);
+
+				// when this method exits, the leadership will be revoked;
+				// therefore this thread needs to be held up until the
+				// candidate is no longer leader
 				Thread.sleep(Long.MAX_VALUE);
 			}
 			catch (InterruptedException e) {
@@ -93,6 +141,9 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		}
 	}
 
+	/**
+	 * Implementation of leadership context backed by Curator.
+	 */
 	class CuratorContext implements Context {
 
 		@Override
