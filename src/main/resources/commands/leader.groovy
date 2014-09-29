@@ -7,7 +7,7 @@ import org.crsh.command.InvocationContext
 /**
  * Custom CRaSSH command for interacting with the Curator/ZooKeeper
  * leadership utility in the sample app
- * {@link org.springframework.cloud.cluster.zk.leader.SimpleTestApplication}.
+ * {@link org.springframework.cloud.cluster.zk.leader.ZKTestApplication}.
  */
 @Usage("Leadership commands")
 class leader {

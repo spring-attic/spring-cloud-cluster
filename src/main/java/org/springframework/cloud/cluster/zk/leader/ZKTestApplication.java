@@ -16,8 +16,6 @@
 
 package org.springframework.cloud.cluster.zk.leader;
 
-import java.util.UUID;
-
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -27,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.cloud.cluster.leader.Candidate;
-import org.springframework.cloud.cluster.leader.Context;
+import org.springframework.cloud.cluster.test.SimpleCandidate;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -42,14 +40,14 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ComponentScan
 @EnableAutoConfiguration
-public class SimpleTestApplication {
-	private static final Logger logger = LoggerFactory.getLogger(SimpleTestApplication.class);
+public class ZKTestApplication {
+	private static final Logger logger = LoggerFactory.getLogger(ZKTestApplication.class);
 
 	/**
 	 * Main bootstrap method.
 	 */
 	public static void main(String[] args) {
-		SpringApplication.run(SimpleTestApplication.class, args);
+		SpringApplication.run(ZKTestApplication.class, args);
 	}
 
 	/**
@@ -80,51 +78,4 @@ public class SimpleTestApplication {
 		return new LeaderInitiator(curatorClient(), candidate());
 	}
 
-	/**
-	 * Simple {@link Candidate} for leadership. This implementation simply
-	 * logs when it is elected and when its leadership is revoked.
-	 */
-	public static class SimpleCandidate implements Candidate {
-
-		private final String role = "leader";
-
-		private final String id = UUID.randomUUID().toString();
-
-		private volatile Context leaderContext;
-
-		@Override
-		public String getRole() {
-			return role;
-		}
-
-		@Override
-		public String getId() {
-			return id;
-		}
-
-		@Override
-		public void onGranted(Context ctx) throws InterruptedException {
-			logger.info("{} has been granted leadership; context: {}", this, ctx);
-			leaderContext = ctx;
-		}
-
-		@Override
-		public void onRevoked(Context ctx) {
-			logger.info("{} leadership has been revoked", this, ctx);
-		}
-
-		public Context getLeaderContext() {
-			// TODO: this is being exposed so that the CRaSSH command
-			// can access the context to cancel leadership; should this
-			// be exposed to the Candidate interface? Or should the interface
-			// itself include a "renounce" method?
-			return leaderContext;
-		}
-
-		@Override
-		public String toString() {
-			return String.format("SimpleCandidate{role=%s, id=%s}", getRole(), getId());
-		}
-
-	}
 }
