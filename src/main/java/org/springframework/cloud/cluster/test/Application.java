@@ -17,36 +17,16 @@
 package org.springframework.cloud.cluster.test;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.cloud.cluster.hazelcast.leader.HazelcastTestApplication;
-import org.springframework.cloud.cluster.zk.leader.ZKTestApplication;
 
 /**
- * Launcher for the various example applications for leader election.
+ * Launcher for the various example applications for leader election. Usage: run with
+ * <code>--type=zk</code> or <code>--type=hz</code> for Zookeeper or Hazelcast.
  *
  * @author Patrick Peralta
+ * @author Dave Syer
  */
 public class Application {
-	public static void main(String[] args) {
-		Class clz;
-		String arg0 = null;
-
-		if (args.length > 0) {
-			arg0 = args[0];
-		}
-
-		if ("zk".equalsIgnoreCase(arg0)) {
-			clz = ZKTestApplication.class;
-		}
-		else if ("hz".equalsIgnoreCase(arg0)) {
-			clz = HazelcastTestApplication.class;
-		}
-		else {
-			System.out.println("Usage: Application [ zk | hz ]");
-			System.out.println("  zk for ZooKeeper");
-			System.out.println("  hz for Hazelcast");
-			return;
-		}
-
-		SpringApplication.run(clz, args);
+	public static void main(String[] args) throws Exception {
+		SpringApplication.main(args);
 	}
 }
