@@ -14,24 +14,29 @@
  * limitations under the License.
  */
 
-package org.springframework.cloud.cluster.test;
+package org.springframework.cloud.cluster.zk.leader;
+
+import org.apache.curator.test.TestingServer;
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.context.annotation.Bean;
 
 /**
- * Launcher for the various example applications for leader election. Usage: run with
- * <code>--type=zk</code> or <code>--type=hz</code> for Zookeeper or Hazelcast.
- *
  * @author Patrick Peralta
- * @author Dave Syer
  */
-public class Application {
-	public static void main(String[] args) throws Exception {
-		if (args.length > 0 && args[0].startsWith("--type")) {
-			SpringApplication.main(args);
-		}
-		else {
-			System.out.println("Usage: Application --type=zk|zkserver|hz");
-		}
+public class ZKServer {
+	public static final int ZK_SERVER_PORT = 3121;
+
+	@Bean
+	public TestingServer zkServer() throws Exception {
+		return new TestingServer(ZK_SERVER_PORT);
 	}
+
+	/**
+	 * Main bootstrap method.
+	 */
+	public static void main(String[] args) {
+		SpringApplication.run(ZKTestApplication.class, args);
+	}
+
 }

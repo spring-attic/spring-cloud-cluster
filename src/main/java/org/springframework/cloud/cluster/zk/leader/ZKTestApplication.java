@@ -59,14 +59,15 @@ public class ZKTestApplication {
 	}
 
 	/**
-	 * @return Curator/ZooKeeper connection; currently hardcoded to {@code localhost:2818}
+	 * @return Curator/ZooKeeper connection; currently hardcoded to
+	 * {@value ZKServer#ZK_SERVER_PORT}.
 	 */
 	@Bean(initMethod = "start", destroyMethod = "close")
 	public CuratorFramework curatorClient() {
 		return CuratorFrameworkFactory.builder()
 				.defaultData(new byte[0])
 				.retryPolicy(new ExponentialBackoffRetry(1000, 3))
-				.connectString("localhost:2181")
+				.connectString("localhost:" + ZKServer.ZK_SERVER_PORT)
 				.build();
 	}
 

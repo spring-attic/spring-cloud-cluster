@@ -202,5 +202,11 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 				future.cancel(true);
 			}
 		}
+
+		@Override
+		public String toString() {
+			return String.format("HazelcastContext{role=%s, id=%s, isLeader=%s}",
+					getRole(), getId(), isLeader());
+		}
 	}
 }
