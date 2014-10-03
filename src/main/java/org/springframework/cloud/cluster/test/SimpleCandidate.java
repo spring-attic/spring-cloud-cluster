@@ -48,7 +48,7 @@ public class SimpleCandidate implements Candidate {
 	}
 
 	@Override
-	public void onGranted(Context ctx) throws InterruptedException {
+	public void onGranted(Context ctx) {
 		logger.info("{} has been granted leadership; context: {}", this, ctx);
 		leaderContext = ctx;
 	}

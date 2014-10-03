@@ -43,7 +43,10 @@ public interface Context {
 
 	/**
 	 * Causes the {@link Candidate} this context was passed to
-	 * to relinquish leadership.
+	 * to relinquish leadership. This method has no effect
+	 * if the candidate is not currently the leader.
+	 *
+	 * TODO: consider renaming to "yield"
 	 */
 	void renounce();
 }
