@@ -162,7 +162,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		}
 
 		@Override
-		public void renounce() {
+		public void yield() {
 			leaderSelector.interruptLeadership();
 		}
 

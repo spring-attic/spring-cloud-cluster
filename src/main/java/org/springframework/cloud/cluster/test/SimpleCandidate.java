@@ -62,7 +62,7 @@ public class SimpleCandidate implements Candidate {
 		// TODO: this is being exposed so that the CRaSSH command
 		// can access the context to cancel leadership; should this
 		// be exposed to the Candidate interface? Or should the interface
-		// itself include a "renounce" method?
+		// itself include a "yield" method?
 		return leaderContext;
 	}
 

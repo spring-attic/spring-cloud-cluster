@@ -197,7 +197,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		}
 
 		@Override
-		public void renounce() {
+		public void yield() {
 			if (future != null) {
 				future.cancel(true);
 			}
