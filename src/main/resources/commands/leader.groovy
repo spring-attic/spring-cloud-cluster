@@ -23,7 +23,7 @@ class leader {
 			context.writer.println(sprintf("candidate %s is not leader", candidate.getId()))
 		}
 		else {
-			candidate.leaderContext.yield()
+			candidate.yieldLeadership()
 			context.writer.println(sprintf("candidate %s has renounced leadership", candidate.getId()))
 		}
 	}

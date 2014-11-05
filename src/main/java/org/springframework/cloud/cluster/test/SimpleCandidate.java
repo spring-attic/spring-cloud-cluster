@@ -25,8 +25,8 @@ import org.springframework.cloud.cluster.leader.Candidate;
 import org.springframework.cloud.cluster.leader.Context;
 
 /**
- * Simple {@link org.springframework.cloud.cluster.leader.Candidate} for leadership. This implementation simply
- * logs when it is elected and when its leadership is revoked.
+ * Simple {@link org.springframework.cloud.cluster.leader.Candidate} for leadership.
+ * This implementation simply logs when it is elected and when its leadership is revoked.
  */
 public class SimpleCandidate implements Candidate {
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -58,12 +58,11 @@ public class SimpleCandidate implements Candidate {
 		logger.info("{} leadership has been revoked", this, ctx);
 	}
 
-	public Context getLeaderContext() {
-		// TODO: this is being exposed so that the CRaSSH command
-		// can access the context to cancel leadership; should this
-		// be exposed to the Candidate interface? Or should the interface
-		// itself include a "yield" method?
-		return leaderContext;
+	/**
+	 * Voluntarily yield leadership if held.
+	 */
+	public void yieldLeadership() {
+		leaderContext.yield();
 	}
 
 	@Override
