@@ -75,6 +75,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		if (!running) {
 			leaderSelector = new LeaderSelector(client, buildLeaderPath(), new LeaderListener());
 			leaderSelector.setId(candidate.getId());
+			leaderSelector.autoRequeue();
 			leaderSelector.start();
 
 			running = true;
