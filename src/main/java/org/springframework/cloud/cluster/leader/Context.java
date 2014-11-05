@@ -26,16 +26,6 @@ package org.springframework.cloud.cluster.leader;
 public interface Context {
 
 	/**
-	 * @see Candidate#getRole
-	 */
-	String getRole();
-
-	/**
-	 * @see Candidate#getId
-	 */
-	String getId();
-
-	/**
 	 * @return true if the {@link Candidate} this context was
 	 *         passed to is the leader
 	 */

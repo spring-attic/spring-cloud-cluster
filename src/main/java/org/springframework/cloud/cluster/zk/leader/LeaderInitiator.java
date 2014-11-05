@@ -148,16 +148,6 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	class CuratorContext implements Context {
 
 		@Override
-		public String getRole() {
-			return candidate.getRole();
-		}
-
-		@Override
-		public String getId() {
-			return candidate.getId();
-		}
-
-		@Override
 		public boolean isLeader() {
 			return leaderSelector.hasLeadership();
 		}
@@ -170,7 +160,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		@Override
 		public String toString() {
 			return String.format("CuratorContext{role=%s, id=%s, isLeader=%s}",
-					getRole(), getId(), isLeader());
+					candidate.getRole(), candidate.getId(), isLeader());
 		}
 
 	}

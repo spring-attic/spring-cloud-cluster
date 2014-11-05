@@ -182,16 +182,6 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	class HazelcastContext implements Context {
 
 		@Override
-		public String getRole() {
-			return candidate.getRole();
-		}
-
-		@Override
-		public String getId() {
-			return candidate.getId();
-		}
-
-		@Override
 		public boolean isLeader() {
 			return mapLocks != null && mapLocks.isLocked(candidate.getRole());
 		}
@@ -206,7 +196,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		@Override
 		public String toString() {
 			return String.format("HazelcastContext{role=%s, id=%s, isLeader=%s}",
-					getRole(), getId(), isLeader());
+					candidate.getRole(), candidate.getId(), isLeader());
 		}
 	}
 }
