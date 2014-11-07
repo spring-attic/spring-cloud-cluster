@@ -137,6 +137,11 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 				Thread.sleep(Long.MAX_VALUE);
 			}
 			catch (InterruptedException e) {
+				// InterruptedException, like any other runtime exception,
+				// is handled by the finally block below. No need to
+				// reset the interrupt flag as the interrupt is handled.
+			}
+			finally {
 				candidate.onRevoked(context);
 			}
 		}
