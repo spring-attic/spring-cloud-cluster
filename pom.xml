@@ -95,34 +95,44 @@
 		</dependency>
 	</dependencies>
 
-<properties>
+	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.7</java.version>
 		<start-class>org.springframework.cloud.cluster.test.Application</start-class>
 	</properties>
-	    <profiles>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+
+	<profiles>
 		<profile>
 			<id>docs</id>
-            <build>
-               <plugins>
-		        <plugin>
-		          <groupId>org.asciidoctor</groupId>
-		          <artifactId>asciidoctor-maven-plugin</artifactId>
-                  <inherited>false</inherited>
-                </plugin>
-			    <plugin>
-				  <groupId>org.apache.maven.plugins</groupId>
-				  <artifactId>maven-antrun-plugin</artifactId>
-                  <inherited>false</inherited>
-                </plugin>
- 				<plugin>
-				  <groupId>org.codehaus.mojo</groupId>
-				  <artifactId>build-helper-maven-plugin</artifactId>
-                  <inherited>false</inherited>
-                </plugin>
-              </plugins>
-            </build>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.asciidoctor</groupId>
+						<artifactId>asciidoctor-maven-plugin</artifactId>
+						<inherited>false</inherited>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<inherited>false</inherited>
+					</plugin>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>build-helper-maven-plugin</artifactId>
+						<inherited>false</inherited>
+					</plugin>
+				</plugins>
+			</build>
 		</profile>
-    </profiles>
+	</profiles>
 
 </project>
