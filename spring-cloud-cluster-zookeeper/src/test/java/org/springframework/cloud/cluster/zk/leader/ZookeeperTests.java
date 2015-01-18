@@ -1,0 +1,126 @@
+/*
+ * Copyright 2015 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.springframework.cloud.cluster.zk.leader;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.curator.test.TestingServer;
+import org.junit.Test;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.cluster.leader.Context;
+import org.springframework.cloud.cluster.leader.DefaultCandidate;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Tests for zookeeper leader election.
+ * 
+ * @author Janne Valkealahti
+ *
+ */
+public class ZookeeperTests {
+
+	@Test
+	public void testSimpleLeader() throws InterruptedException {
+		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(
+				ZkServerConfig.class, Config1.class);
+		TestCandidate candidate = ctx.getBean(TestCandidate.class);
+		Thread.sleep(2000);
+		assertThat(candidate.onGrantedCalled.get(), is(true));
+		ctx.close();
+	}
+
+	@Configuration
+	static class ZkServerConfig {
+		
+		@Bean
+		public TestingServerWrapper testingServerWrapper() throws Exception {
+			return new TestingServerWrapper();
+		}
+		
+	}
+	
+	@Configuration
+	static class Config1 {
+
+		@Autowired
+		TestingServerWrapper testingServerWrapper;
+		
+		@Bean
+		public TestCandidate candidate() {
+			return new TestCandidate();
+		}
+
+		@Bean(destroyMethod = "close")
+		public CuratorFramework curatorClient() throws Exception {
+			CuratorFramework client = CuratorFrameworkFactory.builder().defaultData(new byte[0])
+					.retryPolicy(new ExponentialBackoffRetry(1000, 3))
+					.connectString("localhost:" + testingServerWrapper.getPort()).build();
+			client.start();
+			return client;
+		}
+
+		@Bean
+		public LeaderInitiator initiator() throws Exception {
+			return new LeaderInitiator(curatorClient(), candidate());
+		}
+
+	}
+	
+	static class TestingServerWrapper implements DisposableBean {
+		
+		TestingServer testingServer;
+		
+		public TestingServerWrapper() throws Exception {
+			this.testingServer = new TestingServer(true);
+		}
+
+		@Override
+		public void destroy() throws Exception {
+			try {
+				testingServer.close();
+			} catch (IOException e) {
+			}
+		}
+		
+		public int getPort() {
+			return testingServer.getPort();
+		}
+		
+	}
+	
+	static class TestCandidate extends DefaultCandidate {
+		
+		AtomicBoolean onGrantedCalled = new AtomicBoolean(false);
+		
+		@Override
+		public void onGranted(Context ctx) {
+			onGrantedCalled.set(true);
+			super.onGranted(ctx);
+		}
+		
+	}
+	
+}
