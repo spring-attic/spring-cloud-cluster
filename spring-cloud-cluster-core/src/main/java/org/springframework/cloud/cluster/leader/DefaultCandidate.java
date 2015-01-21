@@ -28,10 +28,19 @@ public class DefaultCandidate extends AbstractCandidate {
 
 	private volatile Context leaderContext;
 
+	/**
+	 * Instantiate a default candidate.
+	 */
 	public DefaultCandidate() {
 		super();
 	}
 
+	/**
+	 * Instantiate a default candidate.
+	 * 
+	 * @param id the identifier
+	 * @param role the role
+	 */
 	public DefaultCandidate(String id, String role) {
 		super(id, role);
 	}

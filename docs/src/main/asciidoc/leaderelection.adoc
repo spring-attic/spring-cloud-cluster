@@ -1,0 +1,104 @@
+== Leader Election
+
+Leader election allows application to work together with other
+applications to coordinate a cluster leadership via a third party system.
+Currently we provide integrations with `zookeeper` and `hazelcast`.
+
+From user perspective election is working via interfaces
+`org.springframework.cloud.cluster.leader.Candidate` and
+`org.springframework.cloud.cluster.leader.Context`. `Candidate`
+contains access to leadership's `role` and `id` and also have methods
+`onGranted` and `onRevoked`. These callback methods are useful if
+default `Candidate` implementation is changed.
+
+Leader election is auto-configured if either
+`spring-cloud-cluster-hazelcast` or
+`spring-cloud-cluster-zookeeper` jars are found from a classpath. In
+case where both jars are found leader election is created using both
+systems. See sections <<spring-cloud-cluster-leaderelection-zookeeper>>
+and <<spring-cloud-cluster-leaderelection-hazelcast>> for more
+information about a created beans.
+
+Default `Candidate` created from auto-configuration is
+`org.springframework.cloud.cluster.leader.DefaultCandidate` which
+currently only logs granted and revoked events.
+
+If there's a need for disable all leader related auto-configuration,
+a `spring.cloud.cluster.leader.enabled` can be set to false which
+then allows to do manual configuration even if the jars an on a
+classpath. Properties `spring.cloud.cluster.leader.id` and
+`spring.cloud.cluster.leader.role` can be used to set default
+identifier and role.
+
+If you are interested to simple get notification of granted and
+revoked events one option is to attach event listener into spring
+application context. Events `OnGrantedEvent` and `OnRevokedEvent` are
+sent as spring event objects.
+
+Simply create your own event listener class:
+[source,java]
+----
+class MyEventListener implements ApplicationListener<AbstractLeaderEvent> {
+
+  @Override
+  public void onApplicationEvent(AbstractLeaderEvent event) {
+    // do something with OnGrantedEvent or OnRevokedEvent
+  }
+}
+----
+
+and then create it as a bean.
+
+[source,java]
+----
+@Configuration
+static class Config {
+  @Bean
+  public MyEventListener myEventListener() {
+    return new MyEventListener();
+  }
+}
+----
+
+For simply log events you can also use a utility class
+`LoggingListener` which allows easy configuration.
+
+[source,java]
+----
+import org.springframework.cloud.cluster.leader.event.LoggingListener;
+
+@Configuration
+static class Config {
+  @Bean
+  public LoggingListener loggingListener() {
+    return new LoggingListener("info");
+  }
+}
+----
+
+[[spring-cloud-cluster-leaderelection-zookeeper]]
+=== Zookeeper
+`Candidate` implementation for zookeeper is created with a bean name
+`zookeeperLeaderCandidate` which can be used to override the one
+created during auto-configuration.
+
+Zookeeper based election can be explicitly disabled using property
+`spring.cloud.cluster.zookeeper.enabled`.
+
+Other propertys `spring.cloud.cluster.zookeeper.namespace` and
+`spring.cloud.cluster.zookeeper.connect` can be used to set the
+zookeeper base namespace path and connect string.
+
+[[spring-cloud-cluster-leaderelection-hazelcast]]
+=== Hazelcast
+`Candidate` implementation for zookeeper is created with a bean name
+`hazelcastLeaderCandidate` which can be used to override the one
+created during auto-configuration.
+
+Hazelcast based election can be explicitly disabled using property
+`spring.cloud.cluster.hazelcast.enabled`. If you want to provide xml
+based configuration for Hazelcast instance use property
+`spring.cloud.cluster.hazelcast.config-location` to tell location of a
+Hazelcast xml configuration file. `config-location` is a normal spring
+`Resource`.
+

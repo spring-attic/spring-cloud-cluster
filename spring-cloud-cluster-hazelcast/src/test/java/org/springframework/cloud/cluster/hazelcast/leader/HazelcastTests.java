@@ -18,19 +18,23 @@ package org.springframework.cloud.cluster.hazelcast.leader;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
+import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import com.hazelcast.core.Hazelcast;
-import com.hazelcast.core.HazelcastInstance;
-
 import org.junit.Test;
-
 import org.springframework.cloud.cluster.leader.Context;
 import org.springframework.cloud.cluster.leader.DefaultCandidate;
+import org.springframework.cloud.cluster.leader.event.AbstractLeaderEvent;
+import org.springframework.cloud.cluster.leader.event.DefaultLeaderEventPublisher;
+import org.springframework.cloud.cluster.leader.event.LeaderEventPublisher;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
 
 /**
  * Tests for hazelcast leader election.
@@ -46,7 +50,10 @@ public class HazelcastTests {
 		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(
 				Config1.class);
 		TestCandidate candidate = ctx.getBean(TestCandidate.class);
+		TestEventListener listener = ctx.getBean(TestEventListener.class);
 		assertThat(candidate.onGrantedLatch.await(5, TimeUnit.SECONDS), is(true));
+		assertThat(listener.onEventLatch.await(5, TimeUnit.SECONDS), is(true));
+		assertThat(listener.events.size(), is(1));
 		ctx.close();
 	}
 
@@ -65,9 +72,21 @@ public class HazelcastTests {
 
 		@Bean
 		public LeaderInitiator initiator() {
-			return new LeaderInitiator(hazelcastInstance(), candidate());
+			LeaderInitiator initiator = new LeaderInitiator(hazelcastInstance(), candidate());
+			initiator.setLeaderEventPublisher(leaderEventPublisher());
+			return initiator;
 		}
 
+		@Bean
+		public LeaderEventPublisher leaderEventPublisher() {
+			return new DefaultLeaderEventPublisher();
+		}		
+		
+		@Bean
+		public TestEventListener testEventListener() {
+			return new TestEventListener();
+		}
+		
 	}
 
 	static class TestCandidate extends DefaultCandidate {
@@ -82,4 +101,18 @@ public class HazelcastTests {
 
 	}
 
+	static class TestEventListener implements ApplicationListener<AbstractLeaderEvent> {
+
+		CountDownLatch onEventLatch = new CountDownLatch(1);
+		
+		ArrayList<AbstractLeaderEvent> events = new ArrayList<AbstractLeaderEvent>();
+		
+		@Override
+		public void onApplicationEvent(AbstractLeaderEvent event) {
+			events.add(event);
+			onEventLatch.countDown();
+		}
+		
+	}
+	
 }

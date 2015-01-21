@@ -16,14 +16,16 @@
 package org.springframework.cloud.cluster.zk.leader;
 
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
-
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.cloud.cluster.leader.Candidate;
 import org.springframework.cloud.cluster.leader.Context;
+import org.springframework.cloud.cluster.leader.event.LeaderEventPublisher;
 import org.springframework.context.Lifecycle;
+import org.springframework.util.StringUtils;
 
 /**
  * Bootstrap leadership {@link org.springframework.cloud.cluster.leader.Candidate candidates}
@@ -36,6 +38,8 @@ import org.springframework.context.Lifecycle;
  */
 public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableBean {
 
+	private static final String DEFAULT_NAMESPACE = "/spring-cloud/leader/";
+	
 	/**
 	 * Curator client.
 	 */
@@ -57,6 +61,12 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	 */
 	private volatile boolean running;
 
+	/** Base path in a zookeeper */
+	private final String namespace;
+	
+	/** Leader event publisher if set */
+	private LeaderEventPublisher leaderEventPublisher;
+
 	/**
 	 * Construct a {@link LeaderInitiator}.
 	 *
@@ -64,16 +74,35 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	 * @param candidate  leadership election candidate
 	 */
 	public LeaderInitiator(CuratorFramework client, Candidate candidate) {
-		this.client = client;
-		this.candidate = candidate;
+		this(client, candidate, DEFAULT_NAMESPACE);
 	}
 
+	/**
+	 * Construct a {@link LeaderInitiator}.
+	 *
+	 * @param client     Curator client
+	 * @param candidate  leadership election candidate
+	 * @param namespace  namespace base path in zookeeper
+	 */
+	public LeaderInitiator(CuratorFramework client, Candidate candidate, String namespace) {
+		this.client = client;
+		this.candidate = candidate;
+		this.namespace = namespace;
+	}
+	
 	/**
 	 * Start the registration of the {@link #candidate} for leader election.
 	 */
 	@Override
 	public synchronized void start() {
 		if (!running) {
+			if (client.getState() != CuratorFrameworkState.STARTED) {
+				// we want to do curator start here because it needs to
+				// be started before leader selector and it gets a little
+				// complicated to control ordering via beans so that
+				// curator is fully started.
+				client.start();
+			}
 			leaderSelector = new LeaderSelector(client, buildLeaderPath(), new LeaderListener());
 			leaderSelector.setId(candidate.getId());
 			leaderSelector.autoRequeue();
@@ -91,6 +120,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	public synchronized void stop() {
 		if (running) {
 			leaderSelector.close();
+			client.close();
 			running = false;
 		}
 	}
@@ -114,10 +144,27 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	}
 
 	/**
+	 * Sets the {@link LeaderEventPublisher}.
+	 * 
+	 * @param leaderEventPublisher the event publisher
+	 */
+	public void setLeaderEventPublisher(LeaderEventPublisher leaderEventPublisher) {
+		this.leaderEventPublisher = leaderEventPublisher;
+	}
+
+	/**
 	 * @return the ZooKeeper path used for leadership election by Curator
 	 */
 	private String buildLeaderPath() {
-		return String.format("/spring-cloud/leader/%s", candidate.getRole());
+		
+		String ns = StringUtils.hasText(namespace) ? namespace : DEFAULT_NAMESPACE;
+		if (!ns.startsWith("/")) {
+			ns = "/" + ns;
+		}
+		if (!ns.endsWith("/")) {
+			ns = ns + "/";
+		}
+		return String.format(ns + "%s", candidate.getRole());
 	}
 
 	/**
@@ -131,6 +178,9 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 
 			try {
 				candidate.onGranted(context);
+				if (leaderEventPublisher != null) {
+					leaderEventPublisher.publishOnGranted(LeaderInitiator.this, context);
+				}
 
 				// when this method exits, the leadership will be revoked;
 				// therefore this thread needs to be held up until the
@@ -144,6 +194,9 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 			}
 			finally {
 				candidate.onRevoked(context);
+				if (leaderEventPublisher != null) {
+					leaderEventPublisher.publishOnRevoked(LeaderInitiator.this, context);
+				}
 			}
 		}
 	}
