@@ -17,6 +17,8 @@ package org.springframework.cloud.cluster.leader;
 
 import java.util.UUID;
 
+import org.springframework.util.StringUtils;
+
 /**
  * Base implementation of a {@link Candidate}.
  * 
@@ -31,13 +33,22 @@ public abstract class AbstractCandidate implements Candidate {
 	
 	private final String role;
 	
+	/**
+	 * Instantiate a abstract candidate.
+	 */
 	public AbstractCandidate() {
-		this(UUID.randomUUID().toString(), DEFAULT_ROLE);
+		this(null, null);
 	}
 
+	/**
+	 * Instantiate a abstract candidate.
+	 * 
+	 * @param id the identifier
+	 * @param role the role
+	 */
 	public AbstractCandidate(String id, String role) {
-		this.id = id;
-		this.role = role;
+		this.id = StringUtils.hasText(id) ? id : UUID.randomUUID().toString();
+		this.role = StringUtils.hasText(role) ? role : DEFAULT_ROLE;
 	}
 
 	@Override
