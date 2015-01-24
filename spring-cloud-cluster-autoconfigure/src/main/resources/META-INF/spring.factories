@@ -1,0 +1,4 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+org.springframework.cloud.autoconfigure.leader.LeaderAutoConfiguration,\
+org.springframework.cloud.autoconfigure.leader.ZookeeperLeaderAutoConfiguration,\
+org.springframework.cloud.autoconfigure.leader.HazelcastLeaderAutoConfiguration

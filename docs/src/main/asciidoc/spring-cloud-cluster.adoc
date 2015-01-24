@@ -1,3 +1,5 @@
 = Spring Cloud Cluster
 
 include::intro.adoc[]
+
+include::leaderelection.adoc[]

@@ -28,10 +28,19 @@ public class DefaultCandidate extends AbstractCandidate {
 
 	private volatile Context leaderContext;
 
+	/**
+	 * Instantiate a default candidate.
+	 */
 	public DefaultCandidate() {
 		super();
 	}
 
+	/**
+	 * Instantiate a default candidate.
+	 * 
+	 * @param id the identifier
+	 * @param role the role
+	 */
 	public DefaultCandidate(String id, String role) {
 		super(id, role);
 	}
@@ -48,10 +57,15 @@ public class DefaultCandidate extends AbstractCandidate {
 	}
 
 	/**
-	 * Voluntarily yield leadership if held.
+	 * Voluntarily yield leadership if held. If leader context is not
+	 * yet known this method does nothing. Leader context becomes available
+	 * only after {@link #onGranted(Context)} method is called by the
+	 * leader initiator.
 	 */
 	public void yieldLeadership() {
-		leaderContext.yield();
+		if (leaderContext != null) {
+			leaderContext.yield();			
+		}
 	}
 
 	@Override
