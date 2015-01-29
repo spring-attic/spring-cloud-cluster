@@ -65,7 +65,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	private final String namespace;
 	
 	/** Leader event publisher if set */
-	private LeaderEventPublisher leaderEventPublisher;
+	private volatile LeaderEventPublisher leaderEventPublisher;
 
 	/**
 	 * Construct a {@link LeaderInitiator}.
@@ -120,7 +120,6 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	public synchronized void stop() {
 		if (running) {
 			leaderSelector.close();
-			client.close();
 			running = false;
 		}
 	}

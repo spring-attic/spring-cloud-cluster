@@ -63,7 +63,7 @@ public class ZookeeperLeaderAutoConfiguration {
 		return new DefaultCandidate(lep.getId(), lep.getRole());
 	}
 
-	@Bean
+	@Bean(initMethod = "start", destroyMethod = "close")
 	public CuratorFramework zookeeperLeaderCuratorClient() throws Exception {
 		CuratorFramework client = CuratorFrameworkFactory.builder()
 				.defaultData(new byte[0])
