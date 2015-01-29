@@ -13,31 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.cloud.autoconfigure.leader;
+package org.springframework.cloud.cluster.autoconfigure.lock;
 
-import java.io.IOException;
-
-import org.apache.curator.test.TestingServer;
 import org.junit.After;
 import org.junit.Before;
-import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /**
- * Shared stuff for leader auto-configuration tests.
+ * Shared stuff for locking auto-configuration tests.
  * 
  * @author Janne Valkealahti
  *
  */
-public abstract class AbstractLeaderAutoConfigurationTests {
+public abstract class AbstractLockAutoConfigurationTests {
 
 	protected AnnotationConfigApplicationContext context;
-	
-	protected ZookeeperTestingServerWrapper zookeeper;
 
 	@Before
-	public void setup() throws Exception {
-		zookeeper = setupZookeeperTestingServer();
+	public void setup() {
 		context = setupContext();
 	}
 	
@@ -46,44 +39,10 @@ public abstract class AbstractLeaderAutoConfigurationTests {
 		if (context != null) {
 			context.close();
 		}
-		if (zookeeper != null) {
-			try {
-				zookeeper.destroy();
-			} catch (Exception e) {
-			}
-			zookeeper = null;
-		}
-	}
-	
-	protected ZookeeperTestingServerWrapper setupZookeeperTestingServer() throws Exception {
-		return null;
 	}
 	
 	protected AnnotationConfigApplicationContext setupContext() {
 		return new AnnotationConfigApplicationContext();
-	}
-
-	static class ZookeeperTestingServerWrapper implements DisposableBean {
-
-		TestingServer testingServer;
-
-		public ZookeeperTestingServerWrapper() throws Exception {
-			this.testingServer = new TestingServer(true);
-		}
-
-		@Override
-		public void destroy() throws Exception {
-			try {
-				testingServer.close();
-			}
-			catch (IOException e) {
-			}
-		}
-
-		public int getPort() {
-			return testingServer.getPort();
-		}
-
 	}
 	
 }

@@ -4,11 +4,11 @@
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<artifactId>spring-cloud-cluster-autoconfigure</artifactId>
+	<artifactId>spring-cloud-cluster-redis</artifactId>
 	<packaging>jar</packaging>
 
-	<name>spring-cloud-cluster-autoconfigure</name>
-	<description>Spring Cloud Cluster AutoConfigure</description>
+	<name>spring-cloud-cluster-redis</name>
+	<description>Spring Cloud Cluster Redis</description>
 
 	<parent>
 		<groupId>org.springframework.cloud</groupId>
@@ -20,28 +20,15 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-cluster-zookeeper</artifactId>
-			<optional>true</optional>
+			<artifactId>spring-cloud-cluster-core</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-cluster-hazelcast</artifactId>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-cluster-redis</artifactId>
-			<optional>true</optional>
+			<groupId>org.springframework.integration</groupId>
+			<artifactId>spring-integration-redis</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-configuration-processor</artifactId>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.curator</groupId>
-			<artifactId>curator-test</artifactId>
-			<scope>test</scope>
+			<artifactId>spring-boot-starter-redis</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

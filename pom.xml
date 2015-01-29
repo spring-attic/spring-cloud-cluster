@@ -21,6 +21,7 @@
 		<module>spring-cloud-cluster-core</module>
 		<module>spring-cloud-cluster-zookeeper</module>
 		<module>spring-cloud-cluster-hazelcast</module>
+		<module>spring-cloud-cluster-redis</module>
 		<module>spring-cloud-cluster-autoconfigure</module>
 		<module>docs</module>
 	</modules>
@@ -39,6 +40,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.7</java.version>
 		<start-class>org.springframework.cloud.cluster.test.Application</start-class>
+		<skipITs>true</skipITs>
 	</properties>
 
 	<dependencyManagement>
@@ -56,6 +58,11 @@
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-cluster-hazelcast</artifactId>
+				<version>${spring-cloud.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-cluster-redis</artifactId>
 				<version>${spring-cloud.version}</version>
 			</dependency>
 			<dependency>
@@ -80,6 +87,26 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
+
+<build>
+	<plugins>
+		<plugin>
+			<artifactId>maven-failsafe-plugin</artifactId>
+			<configuration>
+				<skipITs>${skipITs}</skipITs>
+			</configuration>
+			<executions>
+				<execution>
+					<phase>package</phase>
+					<goals>
+						<goal>integration-test</goal>
+						<goal>verify</goal>
+					</goals>
+				</execution>
+			</executions>
+		</plugin>
+	</plugins>
+</build>
 
 	<profiles>
 		<profile>
