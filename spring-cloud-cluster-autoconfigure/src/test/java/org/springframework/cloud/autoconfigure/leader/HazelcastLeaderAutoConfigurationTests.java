@@ -22,7 +22,6 @@ import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 import org.springframework.boot.test.EnvironmentTestUtils;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -38,7 +37,6 @@ public class HazelcastLeaderAutoConfigurationTests extends AbstractLeaderAutoCon
 
 	@Test
 	public void testDefaults() throws Exception {
-		context = new AnnotationConfigApplicationContext();
 		EnvironmentTestUtils.addEnvironment(this.context);
 		context.register(LeaderAutoConfiguration.class, HazelcastLeaderAutoConfiguration.class);
 		context.refresh();
@@ -49,7 +47,6 @@ public class HazelcastLeaderAutoConfigurationTests extends AbstractLeaderAutoCon
 
 	@Test
 	public void testDisabled() throws Exception {
-		context = new AnnotationConfigApplicationContext();
 		EnvironmentTestUtils.addEnvironment(this.context,
 				"spring.cloud.cluster.hazelcast.leader.enabled:false");
 		context.register(LeaderAutoConfiguration.class, HazelcastLeaderAutoConfiguration.class);
@@ -61,7 +58,6 @@ public class HazelcastLeaderAutoConfigurationTests extends AbstractLeaderAutoCon
 	
 	@Test
 	public void testGlobalLeaderDisabled() throws Exception {
-		context = new AnnotationConfigApplicationContext();
 		EnvironmentTestUtils
 				.addEnvironment(
 						this.context,
@@ -76,7 +72,6 @@ public class HazelcastLeaderAutoConfigurationTests extends AbstractLeaderAutoCon
 	
 	@Test
 	public void testEnabled() throws Exception {
-		context = new AnnotationConfigApplicationContext();
 		EnvironmentTestUtils
 				.addEnvironment(
 						this.context,
@@ -90,7 +85,6 @@ public class HazelcastLeaderAutoConfigurationTests extends AbstractLeaderAutoCon
 	
 	@Test
 	public void testOverrideConfig() throws Exception {
-		context = new AnnotationConfigApplicationContext();
 		EnvironmentTestUtils.addEnvironment(this.context);
 		context.register(LeaderAutoConfiguration.class, HazelcastLeaderAutoConfiguration.class, OverrideConfig.class);
 		context.refresh();
@@ -106,7 +100,6 @@ public class HazelcastLeaderAutoConfigurationTests extends AbstractLeaderAutoCon
 
 	@Test
 	public void testXmlConfig() throws Exception {
-		context = new AnnotationConfigApplicationContext();
 		EnvironmentTestUtils.addEnvironment(this.context,
 				"spring.cloud.cluster.hazelcast.config-location:classpath:/foobar.xml");
 		context.register(LeaderAutoConfiguration.class, HazelcastLeaderAutoConfiguration.class);

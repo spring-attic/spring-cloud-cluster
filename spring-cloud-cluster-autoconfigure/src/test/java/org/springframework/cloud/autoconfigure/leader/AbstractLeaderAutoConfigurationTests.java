@@ -29,7 +29,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
  * @author Janne Valkealahti
  *
  */
-public class AbstractLeaderAutoConfigurationTests {
+public abstract class AbstractLeaderAutoConfigurationTests {
 
 	protected AnnotationConfigApplicationContext context;
 	
@@ -38,6 +38,7 @@ public class AbstractLeaderAutoConfigurationTests {
 	@Before
 	public void setup() throws Exception {
 		zookeeper = setupZookeeperTestingServer();
+		context = setupContext();
 	}
 	
 	@After
@@ -56,6 +57,10 @@ public class AbstractLeaderAutoConfigurationTests {
 	
 	protected ZookeeperTestingServerWrapper setupZookeeperTestingServer() throws Exception {
 		return null;
+	}
+	
+	protected AnnotationConfigApplicationContext setupContext() {
+		return new AnnotationConfigApplicationContext();
 	}
 
 	static class ZookeeperTestingServerWrapper implements DisposableBean {

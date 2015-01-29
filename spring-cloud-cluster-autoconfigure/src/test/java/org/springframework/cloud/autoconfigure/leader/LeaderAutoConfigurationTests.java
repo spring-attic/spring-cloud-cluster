@@ -23,7 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.EnvironmentTestUtils;
 import org.springframework.cloud.cluster.leader.Candidate;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /**
  * Tests for common leadership concepts.
@@ -40,7 +39,6 @@ public class LeaderAutoConfigurationTests extends AbstractLeaderAutoConfiguratio
 
 	@Test
 	public void testAutowireSingleZookeeperCandidate() {
-		context = new AnnotationConfigApplicationContext();
 		EnvironmentTestUtils.addEnvironment(this.context);
 		context.register(LeaderAutoConfiguration.class, ZookeeperLeaderAutoConfiguration.class, Config1.class);
 		context.refresh();
@@ -52,7 +50,6 @@ public class LeaderAutoConfigurationTests extends AbstractLeaderAutoConfiguratio
 
 	@Test
 	public void testAutowireSingleHazelcastCandidate() {
-		context = new AnnotationConfigApplicationContext();
 		EnvironmentTestUtils.addEnvironment(this.context);
 		context.register(LeaderAutoConfiguration.class, HazelcastLeaderAutoConfiguration.class, Config1.class);
 		context.refresh();
@@ -64,7 +61,6 @@ public class LeaderAutoConfigurationTests extends AbstractLeaderAutoConfiguratio
 
 	@Test
 	public void testAutowireMultipleCandidates() {
-		context = new AnnotationConfigApplicationContext();
 		EnvironmentTestUtils.addEnvironment(this.context);
 		context.register(LeaderAutoConfiguration.class,
 				ZookeeperLeaderAutoConfiguration.class,

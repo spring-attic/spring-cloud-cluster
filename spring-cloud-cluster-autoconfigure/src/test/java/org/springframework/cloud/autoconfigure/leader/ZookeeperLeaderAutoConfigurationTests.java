@@ -20,7 +20,6 @@ import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 import org.springframework.boot.test.EnvironmentTestUtils;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 /**
  * Tests for {@link ZookeeperLeaderAutoConfiguration}.
@@ -37,7 +36,6 @@ public class ZookeeperLeaderAutoConfigurationTests extends AbstractLeaderAutoCon
 	
 	@Test
 	public void testDefaults() throws Exception {
-		context = new AnnotationConfigApplicationContext();
 		EnvironmentTestUtils.addEnvironment(this.context);
 		context.register(LeaderAutoConfiguration.class, ZookeeperLeaderAutoConfiguration.class);
 		context.refresh();
@@ -48,7 +46,6 @@ public class ZookeeperLeaderAutoConfigurationTests extends AbstractLeaderAutoCon
 
 	@Test
 	public void testEnabled() throws Exception {
-		context = new AnnotationConfigApplicationContext();
 		EnvironmentTestUtils
 				.addEnvironment(
 						this.context,
@@ -63,7 +60,6 @@ public class ZookeeperLeaderAutoConfigurationTests extends AbstractLeaderAutoCon
 
 	@Test
 	public void testDisabled() throws Exception {
-		context = new AnnotationConfigApplicationContext();
 		EnvironmentTestUtils
 				.addEnvironment(
 						this.context,
@@ -77,7 +73,6 @@ public class ZookeeperLeaderAutoConfigurationTests extends AbstractLeaderAutoCon
 
 	@Test
 	public void testGlobalLeaderDisabled() throws Exception {
-		context = new AnnotationConfigApplicationContext();
 		EnvironmentTestUtils
 				.addEnvironment(
 						this.context,
@@ -92,7 +87,6 @@ public class ZookeeperLeaderAutoConfigurationTests extends AbstractLeaderAutoCon
 
 	@Test
 	public void testGlobalLeaderDisabledZkEnabled() throws Exception {
-		context = new AnnotationConfigApplicationContext();
 		EnvironmentTestUtils
 				.addEnvironment(
 						this.context,
