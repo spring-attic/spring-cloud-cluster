@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.cloud.cluster.zk.leader;
+package org.springframework.cloud.cluster.zk;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -24,7 +24,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  */
 @ConfigurationProperties(value = "spring.cloud.cluster.zookeeper")
-public class ZookeeperProperties {
+public class ZookeeperClusterProperties {
 
 	/** base zookeeper namespace path. */
 	private String namespace;

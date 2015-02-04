@@ -23,7 +23,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.cloud.cluster.hazelcast.leader.HazelcastProperties;
+import org.springframework.cloud.cluster.hazelcast.HazelcastClusterProperties;
 import org.springframework.cloud.cluster.hazelcast.leader.LeaderInitiator;
 import org.springframework.cloud.cluster.leader.Candidate;
 import org.springframework.cloud.cluster.leader.DefaultCandidate;
@@ -50,7 +50,7 @@ import com.hazelcast.core.HazelcastInstance;
 		"spring.cloud.cluster.hazelcast.leader.enabled" }, matchIfMissing = true)
 @ConditionalOnMissingBean(name = "hazelcastLeaderInitiator")
 @EnableConfigurationProperties({ LeaderElectionProperties.class,
-		HazelcastProperties.class })
+		HazelcastClusterProperties.class })
 @AutoConfigureAfter(LeaderAutoConfiguration.class)
 public class HazelcastLeaderAutoConfiguration {
 
@@ -58,7 +58,7 @@ public class HazelcastLeaderAutoConfiguration {
 	private LeaderElectionProperties lep;
 
 	@Autowired
-	private HazelcastProperties hp;
+	private HazelcastClusterProperties hp;
 
 	@Autowired
 	private LeaderEventPublisher publisher;

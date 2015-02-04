@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.cloud.cluster.hazelcast.leader;
+package org.springframework.cloud.cluster.hazelcast;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.core.io.Resource;
@@ -25,7 +25,7 @@ import org.springframework.core.io.Resource;
  *
  */
 @ConfigurationProperties(value = "spring.cloud.cluster.hazelcast")
-public class HazelcastProperties {
+public class HazelcastClusterProperties {
 	
 	/** xml config location for hazelcast configuration. */
 	private Resource configLocation;

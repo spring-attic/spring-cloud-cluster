@@ -28,8 +28,8 @@ import org.springframework.cloud.cluster.leader.Candidate;
 import org.springframework.cloud.cluster.leader.DefaultCandidate;
 import org.springframework.cloud.cluster.leader.LeaderElectionProperties;
 import org.springframework.cloud.cluster.leader.event.LeaderEventPublisher;
+import org.springframework.cloud.cluster.zk.ZookeeperClusterProperties;
 import org.springframework.cloud.cluster.zk.leader.LeaderInitiator;
-import org.springframework.cloud.cluster.zk.leader.ZookeeperProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -45,7 +45,7 @@ import org.springframework.context.annotation.Configuration;
 		"spring.cloud.cluster.leader.enabled" }, matchIfMissing = true)
 @ConditionalOnMissingBean(name = "zookeeperLeaderInitiator")
 @EnableConfigurationProperties({ LeaderElectionProperties.class,
-		ZookeeperProperties.class })
+		ZookeeperClusterProperties.class })
 @AutoConfigureAfter(LeaderAutoConfiguration.class)
 public class ZookeeperLeaderAutoConfiguration {
 
@@ -53,7 +53,7 @@ public class ZookeeperLeaderAutoConfiguration {
 	private LeaderElectionProperties lep;
 
 	@Autowired
-	private ZookeeperProperties zkp;
+	private ZookeeperClusterProperties zkp;
 
 	@Autowired
 	private LeaderEventPublisher publisher;
