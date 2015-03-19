@@ -13,3 +13,4 @@ target
 *.swp
 .idea
 *.iml
+.factorypath
