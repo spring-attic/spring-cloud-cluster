@@ -23,20 +23,23 @@ import org.springframework.context.ApplicationEvent;
  * classes should be derived from this class.
  *
  * @author Janne Valkealahti
+ * @author Gary Russell
  *
  */
 @SuppressWarnings("serial")
 public abstract class AbstractLeaderEvent extends ApplicationEvent {
 
-	private Context context;
-	
+	private final Context context;
+
+	private final String role;
+
 	/**
 	 * Create a new ApplicationEvent.
 	 *
 	 * @param source the component that published the event (never {@code null})
 	 */
 	public AbstractLeaderEvent(Object source) {
-		super(source);
+		this(source, null, null);
 	}
 
 	/**
@@ -44,24 +47,35 @@ public abstract class AbstractLeaderEvent extends ApplicationEvent {
 	 *
 	 * @param source the component that published the event (never {@code null})
 	 * @param context the context associated with this event
+	 * @param role the role of the leader
 	 */
-	public AbstractLeaderEvent(Object source, Context context) {
+	public AbstractLeaderEvent(Object source, Context context, String role) {
 		super(source);
 		this.context = context;
+		this.role = role;
 	}
 
 	/**
-	 * Gets the {@link Context} associated with this event.
-	 * 
+	 * Get the {@link Context} associated with this event.
+	 *
 	 * @return the context
 	 */
 	public Context getContext() {
 		return context;
 	}
 
+	/**
+	 * Get the role of the leader.
+	 *
+	 * @return the role
+	 */
+	public String getRole() {
+		return role;
+	}
+
 	@Override
 	public String toString() {
-		return "AbstractLeaderEvent [context=" + context + ", source=" + source
+		return "AbstractLeaderEvent [role=" + role + ", context=" + context + ", source=" + source
 				+ "]";
 	}
 
