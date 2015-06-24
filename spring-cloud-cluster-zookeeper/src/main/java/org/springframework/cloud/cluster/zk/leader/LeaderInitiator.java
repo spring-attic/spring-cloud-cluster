@@ -21,11 +21,10 @@ import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
 
 import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.cloud.cluster.leader.Candidate;
 import org.springframework.cloud.cluster.leader.Context;
 import org.springframework.cloud.cluster.leader.event.LeaderEventPublisher;
-import org.springframework.context.Lifecycle;
+import org.springframework.context.SmartLifecycle;
 import org.springframework.util.StringUtils;
 
 /**
@@ -38,7 +37,7 @@ import org.springframework.util.StringUtils;
  * @author Gary Russell
  *
  */
-public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableBean {
+public class LeaderInitiator implements SmartLifecycle, DisposableBean {
 
 	private static final String DEFAULT_NAMESPACE = "/spring-cloud/leader/";
 
@@ -58,15 +57,29 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	private volatile LeaderSelector leaderSelector;
 
 	/**
+	 * @see SmartLifecycle
+	 */
+	private volatile boolean autoStartup = true;
+
+	/**
+	 * @see SmartLifecycle
+	 */
+	private volatile int phase;
+
+	/**
 	 * Flag that indicates whether the leadership election for
 	 * this {@link #candidate} is running.
 	 */
 	private volatile boolean running;
 
-	/** Base path in a zookeeper */
+	/**
+	 * Base path in Zookeeper.
+	 * */
 	private final String namespace;
 
-	/** Leader event publisher if set */
+	/**
+	 * Leader event publisher if set.
+	 */
 	private volatile LeaderEventPublisher leaderEventPublisher;
 
 	/**
@@ -90,6 +103,40 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		this.client = client;
 		this.candidate = candidate;
 		this.namespace = namespace;
+	}
+
+	/**
+	 * @return true if leadership election for this {@link #candidate} is running
+	 */
+	@Override
+	public boolean isRunning() {
+		return running;
+	}
+
+	@Override
+	public int getPhase() {
+		return this.phase;
+	}
+
+	/**
+	 * @param phase the phase
+	 * @see SmartLifecycle
+	 */
+	public void setPhase(int phase) {
+		this.phase = phase;
+	}
+
+	@Override
+	public boolean isAutoStartup() {
+		return this.autoStartup;
+	}
+
+	/**
+	 * @param autoStartup true to start automatically
+	 * @see SmartLifecycle
+	 */
+	public void setAutoStartup(boolean autoStartup) {
+		this.autoStartup = autoStartup;
 	}
 
 	/**
@@ -126,17 +173,10 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		}
 	}
 
-	/**
-	 * @return true if leadership election for this {@link #candidate} is running
-	 */
 	@Override
-	public boolean isRunning() {
-		return running;
-	}
-
-	@Override
-	public void afterPropertiesSet() throws Exception {
-		start();
+	public void stop(Runnable runnable) {
+		stop();
+		runnable.run();
 	}
 
 	@Override
