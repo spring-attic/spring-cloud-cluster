@@ -19,8 +19,8 @@ install:
 - ./docs/src/main/asciidoc/ghpages.sh
 script:
 - ./consul agent -server -bootstrap-expect 1 -data-dir /tmp/consul &
-- '[ "${TRAVIS_PULL_REQUEST}" != "false" ] || ./mvnw -s .settings.xml deploy -P release -nsu -Dmaven.test.redirectTestOutputToFile=true'
-- '[ "${TRAVIS_PULL_REQUEST}" = "false" ] || ./mvnw install -nsu -Dmaven.test.redirectTestOutputToFile=false'
+- '[ "${TRAVIS_PULL_REQUEST}" != "false" ] || ./mvnw -s .settings.xml deploy -P release -nsu -Dmaven.test.redirectTestOutputToFile=false'
+- '[ "${TRAVIS_PULL_REQUEST}" = "false" ] || ./mvnw install -nsu -Dmaven.test.redirectTestOutputToFile=true'
 env:
   global:
   - GIT_NAME="Dave Syer"
