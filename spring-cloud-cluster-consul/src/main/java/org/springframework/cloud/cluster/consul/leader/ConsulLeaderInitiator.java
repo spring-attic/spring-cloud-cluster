@@ -144,6 +144,19 @@ public class ConsulLeaderInitiator implements Lifecycle, InitializingBean, Dispo
 		}
 	}
 
+	public boolean renew() {
+		if (running.get() && sessionId.get() != null) {
+			try {
+				client.renewSession(sessionId.get(), QueryParams.DEFAULT);
+				return true;
+			} catch (OperationException e) {
+				log.warn(String.format("Unable to renew session: %s, statusCode: %s, statusMsg: %s",
+						sessionId.get(), e.getStatusCode(), e.getStatusMessage()), e);
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * @return true if leadership election for this {@link #candidate} is running
 	 */
@@ -230,7 +243,8 @@ public class ConsulLeaderInitiator implements Lifecycle, InitializingBean, Dispo
 					// reset the interrupt flag as the interrupt is handled.
 				}
 				catch (OperationException e) {
-					log.debug("Error trying to become leader. Status code:" + e.getStatusCode(), e);
+					log.warn(String.format("Error trying to become leader: %s, statusCode: %s, statusMsg: %s",
+							sessionId.get(), e.getStatusCode(), e.getStatusMessage()), e);
 				}
 				finally {
 					if (locked) {

@@ -81,6 +81,8 @@ public class ConsulClusterProperties {
 
 		private Behavior behavior;
 
+		private Long renewalDelay;
+
 		public String getTtl() {
 			return ttl;
 		}
@@ -103,6 +105,14 @@ public class ConsulClusterProperties {
 
 		public void setLockDelay(long lockDelay) {
 			this.lockDelay = lockDelay;
+		}
+
+		public Long getRenewalDelay() {
+			return renewalDelay;
+		}
+
+		public void setRenewalDelay(Long renewalDelay) {
+			this.renewalDelay = renewalDelay;
 		}
 	}
 

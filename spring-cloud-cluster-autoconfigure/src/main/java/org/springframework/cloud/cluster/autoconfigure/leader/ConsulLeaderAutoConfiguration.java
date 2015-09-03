@@ -15,25 +15,25 @@
  */
 package org.springframework.cloud.cluster.autoconfigure.leader;
 
-import com.ecwid.consul.v1.ConsulClient;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cloud.cluster.consul.ConsulClusterProperties;
+import org.springframework.cloud.cluster.consul.leader.ConsulLeaderInitiator;
+import org.springframework.cloud.cluster.consul.leader.ConsulLeaderRenewer;
 import org.springframework.cloud.cluster.leader.Candidate;
 import org.springframework.cloud.cluster.leader.DefaultCandidate;
 import org.springframework.cloud.cluster.leader.LeaderElectionProperties;
 import org.springframework.cloud.cluster.leader.event.LeaderEventPublisher;
-import org.springframework.cloud.cluster.consul.ConsulClusterProperties;
-import org.springframework.cloud.cluster.consul.leader.ConsulLeaderInitiator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.ecwid.consul.v1.ConsulClient;
 
 /**
  * Auto-configuration for consul leader election.
@@ -73,6 +73,16 @@ public class ConsulLeaderAutoConfiguration {
 				consulLeaderCandidate(), props);
 		initiator.setLeaderEventPublisher(publisher);
 		return initiator;
+	}
+
+	@Configuration
+	@ConditionalOnExpression("${spring.cloud.cluster.consul.leader.session.renewalDelay:0} > 0")
+	protected static class ConsulLeaderSessionRenewalConfiguration {
+
+		@Bean
+		public ConsulLeaderRenewer consulLeaderRenewer(ConsulLeaderInitiator initiator) {
+			return new ConsulLeaderRenewer(initiator);
+		}
 	}
 
 }
