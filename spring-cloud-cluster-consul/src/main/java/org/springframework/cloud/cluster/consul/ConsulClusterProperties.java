@@ -15,6 +15,8 @@
  */
 package org.springframework.cloud.cluster.consul;
 
+import com.ecwid.consul.v1.session.model.Session.Behavior;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -43,7 +45,9 @@ public class ConsulClusterProperties {
 		private boolean enabled = true;
 
 		private String namespace = "spring-cloud/leader/";
-	
+
+		private SessionProperties session = new SessionProperties();
+
 		public boolean isEnabled() {
 			return enabled;
 		}
@@ -58,6 +62,47 @@ public class ConsulClusterProperties {
 
 		public void setNamespace(String namespace) {
 			this.namespace = namespace;
+		}
+
+		public SessionProperties getSession() {
+			return session;
+		}
+
+		public void setSession(SessionProperties session) {
+			this.session = session;
+		}
+	}
+
+	public static class SessionProperties {
+
+		private String ttl;
+
+		private long lockDelay;
+
+		private Behavior behavior;
+
+		public String getTtl() {
+			return ttl;
+		}
+
+		public void setTtl(String ttl) {
+			this.ttl = ttl;
+		}
+
+		public Behavior getBehavior() {
+			return behavior;
+		}
+
+		public void setBehavior(Behavior behavior) {
+			this.behavior = behavior;
+		}
+
+		public long getLockDelay() {
+			return lockDelay;
+		}
+
+		public void setLockDelay(long lockDelay) {
+			this.lockDelay = lockDelay;
 		}
 	}
 

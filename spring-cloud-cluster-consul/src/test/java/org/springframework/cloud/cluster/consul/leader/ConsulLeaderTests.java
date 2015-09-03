@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import com.ecwid.consul.v1.QueryParams;
 import org.junit.Test;
 import org.springframework.cloud.cluster.consul.ConsulClusterProperties;
 import org.springframework.cloud.cluster.leader.Context;
@@ -45,23 +44,23 @@ import com.ecwid.consul.v1.ConsulClient;
  * @author Spencer Gibb
  *
  */
-public class ConsulTests {
+public class ConsulLeaderTests {
 
 	@Test
 	public void testSimpleLeader() throws InterruptedException {
-		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(ConsulTestConfig.class);
-		TestCandidate candidate = ctx.getBean(TestCandidate.class);
-		TestEventListener listener = ctx.getBean(TestEventListener.class);
-		assertThat("candidate not granted leadership", candidate.onGrantedLatch.await(5, TimeUnit.SECONDS), is(true));
-		assertThat("leader event not received", listener.onEventLatch.await(5, TimeUnit.SECONDS), is(true));
-		assertThat("wrong number of leader events", listener.events.size(), is(1));
-
-		if (candidate.sessionId != null) {
-			ConsulClient client = ctx.getBean(ConsulClient.class);
-			client.sessionDestroy(candidate.sessionId, QueryParams.DEFAULT);
+		AnnotationConfigApplicationContext ctx = null;
+		try {
+			ctx = new AnnotationConfigApplicationContext(ConsulTestConfig.class);
+			TestCandidate candidate = ctx.getBean(TestCandidate.class);
+			TestEventListener listener = ctx.getBean(TestEventListener.class);
+			assertThat("candidate not granted leadership", candidate.onGrantedLatch.await(5, TimeUnit.SECONDS), is(true));
+			assertThat("leader event not received", listener.onEventLatch.await(5, TimeUnit.SECONDS), is(true));
+			assertThat("wrong number of leader events", listener.events.size(), is(1));
+		} finally {
+			if (ctx != null) {
+				ctx.close();
+			}
 		}
-
-		ctx.close();
 	}
 
 	@Configuration
@@ -78,7 +77,9 @@ public class ConsulTests {
 
 		@Bean
 		public ConsulLeaderInitiator consulLeaderInitiator() throws Exception {
-			ConsulLeaderInitiator initiator = new ConsulLeaderInitiator(consulClient(), candidate(), new ConsulClusterProperties());
+			ConsulClusterProperties properties = new ConsulClusterProperties();
+			properties.getLeader().getSession().setTtl("10s");
+			ConsulLeaderInitiator initiator = new ConsulLeaderInitiator(consulClient(), candidate(), properties);
 			initiator.setLeaderEventPublisher(leaderEventPublisher());
 			return initiator;
 		}

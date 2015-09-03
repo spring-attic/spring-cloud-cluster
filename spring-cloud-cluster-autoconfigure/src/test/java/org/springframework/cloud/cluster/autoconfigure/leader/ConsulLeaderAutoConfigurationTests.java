@@ -25,6 +25,10 @@ import org.springframework.context.annotation.Configuration;
 
 import com.ecwid.consul.v1.ConsulClient;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Tests for {@link ConsulLeaderAutoConfiguration}.
  * 
@@ -76,8 +80,11 @@ public class ConsulLeaderAutoConfigurationTests extends AbstractLeaderAutoConfig
 	}
 
 	private void setupEnvironment(String... pairs) {
-		EnvironmentTestUtils.addEnvironment(this.context, pairs);
-		context.register(LeaderAutoConfiguration.class, ConsulClientConfig.class, ConsulLeaderAutoConfiguration.class);
+		List<String> list = new ArrayList<>(Arrays.asList(pairs));
+		list.add("spring.cloud.cluster.consul.leader.session.ttl=10s");
+
+		EnvironmentTestUtils.addEnvironment(this.context, list.toArray(new String[list.size()]));
+				context.register(LeaderAutoConfiguration.class, ConsulClientConfig.class, ConsulLeaderAutoConfiguration.class);
 		context.refresh();
 	}
 

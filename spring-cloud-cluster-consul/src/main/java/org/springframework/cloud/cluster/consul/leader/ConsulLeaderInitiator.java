@@ -20,15 +20,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.ecwid.consul.v1.QueryParams;
-import com.ecwid.consul.v1.Response;
-import com.ecwid.consul.v1.kv.model.GetValue;
-import com.ecwid.consul.v1.kv.model.PutParams;
-import com.ecwid.consul.v1.session.model.NewSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.cloud.cluster.consul.ConsulClusterProperties;
@@ -39,6 +35,12 @@ import org.springframework.context.Lifecycle;
 import org.springframework.util.StringUtils;
 
 import com.ecwid.consul.v1.ConsulClient;
+import com.ecwid.consul.v1.OperationException;
+import com.ecwid.consul.v1.QueryParams;
+import com.ecwid.consul.v1.Response;
+import com.ecwid.consul.v1.kv.model.GetValue;
+import com.ecwid.consul.v1.kv.model.PutParams;
+import com.ecwid.consul.v1.session.model.NewSession;
 
 /**
  * Bootstrap leadership {@link org.springframework.cloud.cluster.leader.Candidate candidates}
@@ -55,6 +57,8 @@ import com.ecwid.consul.v1.ConsulClient;
  *
  */
 public class ConsulLeaderInitiator implements Lifecycle, InitializingBean, DisposableBean {
+
+	private final Logger log = LoggerFactory.getLogger(this.getClass());
 
 	/**
 	 * Consul client.
@@ -180,10 +184,21 @@ public class ConsulLeaderInitiator implements Lifecycle, InitializingBean, Dispo
 			long index = -1;
 			boolean locked = false;
 
+			if (!StringUtils.hasText(sessionId.get())) {
+				NewSession session = new NewSession();
+				session.setName(candidate.getRole());
+				session.setTtl(properties.getSession().getTtl());
+				session.setBehavior(properties.getSession().getBehavior());
+				session.setLockDelay(properties.getSession().getLockDelay());
+				//TODO: if TTL is not null, sessions would need to be renewed
+				//TODO: checks
+				Response<String> sessionResp = client.sessionCreate(session, QueryParams.DEFAULT);
+				sessionId.set(sessionResp.getValue());
+			}
+
 			while (running.get()) {
 				try {
 					QueryParams queryParams;
-
 					if (index == -1) {
 						queryParams = QueryParams.DEFAULT;
 					} else {
@@ -193,38 +208,29 @@ public class ConsulLeaderInitiator implements Lifecycle, InitializingBean, Dispo
 					Response<GetValue> response = client.getKVValue(buildLeaderKey(), queryParams);
 					index = response.getConsulIndex();
 
-					if (response.getValue() != null) {
-						sessionId.set(response.getValue().getSession());
-					}
-
-					if (!StringUtils.hasText(sessionId.get())) {
-						NewSession session = new NewSession();
-						session.setName(candidate.getRole());
-						//TODO: lockdelay? between 0s - 60s, helps avoid sleep states
-						//TODO: behavior: release or delete (ephemeral entries)?
-						//TODO: use TTL? between 10s - 3600s
-						//TODO: checks
-						Response<String> sessionResp = client.sessionCreate(session, QueryParams.DEFAULT);
-						sessionId.set(sessionResp.getValue());
-					}
-
-					PutParams params = new PutParams();
-					params.setAcquireSession(sessionId.get());
-					Response<Boolean> lockResp = client.setKVValue(buildLeaderKey(), candidate.getId(), params);
-					locked = lockResp.getValue();
-					if (locked) {
-						leader.set(true);
-						candidate.onGranted(context);
-						if (leaderEventPublisher != null) {
-							leaderEventPublisher.publishOnGranted(ConsulLeaderInitiator.this, context);
+					if (response.getValue() != null && response.getValue().getSession() == null) {
+						// there is no lock
+						PutParams params = new PutParams();
+						params.setAcquireSession(sessionId.get());
+						Response<Boolean> lockResp = client.setKVValue(buildLeaderKey(), candidate.getId(), params);
+						locked = lockResp.getValue();
+						if (locked) {
+							leader.set(true);
+							candidate.onGranted(context);
+							if (leaderEventPublisher != null) {
+								leaderEventPublisher.publishOnGranted(ConsulLeaderInitiator.this, context);
+							}
+							Thread.sleep(Long.MAX_VALUE);
 						}
-						Thread.sleep(Long.MAX_VALUE);
 					}
 				}
 				catch (InterruptedException e) {
 					// InterruptedException, like any other runtime exception,
 					// is handled by the finally block below. No need to
 					// reset the interrupt flag as the interrupt is handled.
+				}
+				catch (OperationException e) {
+					log.debug("Error trying to become leader. Status code:" + e.getStatusCode(), e);
 				}
 				finally {
 					if (locked) {
