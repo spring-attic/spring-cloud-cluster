@@ -9,3 +9,4 @@ wget "https://dl.bintray.com/mitchellh/consul/${CONSUL_VER}.zip"
 unzip "${CONSUL_VER}.zip"
 # check
 ./consul --version
+rm -rf /tmp/consul
