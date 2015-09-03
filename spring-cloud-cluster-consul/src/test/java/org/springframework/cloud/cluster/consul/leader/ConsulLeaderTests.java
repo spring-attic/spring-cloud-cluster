@@ -46,8 +46,13 @@ import com.ecwid.consul.v1.ConsulClient;
  */
 public class ConsulLeaderTests {
 
+	private static final ConsulClusterProperties properties = new ConsulClusterProperties();
+
 	@Test
 	public void testSimpleLeader() throws InterruptedException {
+		ConsulClient consul = new ConsulClient("localhost", 8500);
+		consul.deleteKVValue(properties.getLeader().getNamespace()+ new TestCandidate().getRole());
+
 		AnnotationConfigApplicationContext ctx = null;
 		try {
 			ctx = new AnnotationConfigApplicationContext(ConsulTestConfig.class);
@@ -77,7 +82,6 @@ public class ConsulLeaderTests {
 
 		@Bean
 		public ConsulLeaderInitiator consulLeaderInitiator() throws Exception {
-			ConsulClusterProperties properties = new ConsulClusterProperties();
 			properties.getLeader().getSession().setTtl("10s");
 			ConsulLeaderInitiator initiator = new ConsulLeaderInitiator(consulClient(), candidate(), properties);
 			initiator.setLeaderEventPublisher(leaderEventPublisher());

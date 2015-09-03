@@ -219,10 +219,21 @@ public class ConsulLeaderInitiator implements Lifecycle, InitializingBean, Dispo
 						//block
 						queryParams = new QueryParams(MAX_WAIT_TIME_SECONDS, index);
 					}
-					Response<GetValue> response = client.getKVValue(buildLeaderKey(), queryParams);
-					index = response.getConsulIndex();
 
-					if (response.getValue() != null && response.getValue().getSession() == null) {
+					boolean keyHasSession = false;
+					try {
+						Response<GetValue> response = client.getKVValue(buildLeaderKey(), queryParams);
+						index = response.getConsulIndex();
+						keyHasSession = response.getValue() != null && response.getValue().getSession() == null;
+					} catch (OperationException e) {
+						if (e.getStatusCode() == 404) {
+							keyHasSession = false;
+						} else {
+							throw e;
+						}
+					}
+
+					if (!keyHasSession) {
 						// there is no lock
 						PutParams params = new PutParams();
 						params.setAcquireSession(sessionId.get());
