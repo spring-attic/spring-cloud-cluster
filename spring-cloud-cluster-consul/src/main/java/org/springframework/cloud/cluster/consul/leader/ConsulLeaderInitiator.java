@@ -58,6 +58,7 @@ import com.ecwid.consul.v1.session.model.NewSession;
  */
 public class ConsulLeaderInitiator implements Lifecycle, InitializingBean, DisposableBean {
 
+	public static final int MAX_WAIT_TIME_SECONDS = 600;
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
 
 	/**
@@ -216,7 +217,7 @@ public class ConsulLeaderInitiator implements Lifecycle, InitializingBean, Dispo
 						queryParams = QueryParams.DEFAULT;
 					} else {
 						//block
-						queryParams = new QueryParams(Long.MAX_VALUE, index);
+						queryParams = new QueryParams(MAX_WAIT_TIME_SECONDS, index);
 					}
 					Response<GetValue> response = client.getKVValue(buildLeaderKey(), queryParams);
 					index = response.getConsulIndex();
