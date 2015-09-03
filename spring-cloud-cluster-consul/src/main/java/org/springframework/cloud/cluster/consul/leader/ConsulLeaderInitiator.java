@@ -31,6 +31,7 @@ import com.ecwid.consul.v1.kv.model.PutParams;
 import com.ecwid.consul.v1.session.model.NewSession;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.cloud.cluster.consul.ConsulClusterProperties;
 import org.springframework.cloud.cluster.leader.Candidate;
 import org.springframework.cloud.cluster.leader.Context;
 import org.springframework.cloud.cluster.leader.event.LeaderEventPublisher;
@@ -55,8 +56,6 @@ import com.ecwid.consul.v1.ConsulClient;
  */
 public class ConsulLeaderInitiator implements Lifecycle, InitializingBean, DisposableBean {
 
-	private static final String DEFAULT_NAMESPACE = "spring-cloud/leader/";
-	
 	/**
 	 * Consul client.
 	 */
@@ -80,6 +79,8 @@ public class ConsulLeaderInitiator implements Lifecycle, InitializingBean, Dispo
 		}
 	});
 
+	private final ConsulClusterProperties.LeaderProperties properties;
+
 	/**
 	 * Future returned by submitting an {@link Initiator} to {@link #executorService}.
 	 * This is used to cancel leadership.
@@ -102,9 +103,6 @@ public class ConsulLeaderInitiator implements Lifecycle, InitializingBean, Dispo
 	 */
 	private volatile AtomicBoolean running = new AtomicBoolean(false);
 
-	/** Base path in a zookeeper */
-	private final String namespace;
-	
 	/** Leader event publisher if set */
 	private volatile LeaderEventPublisher leaderEventPublisher;
 
@@ -113,22 +111,12 @@ public class ConsulLeaderInitiator implements Lifecycle, InitializingBean, Dispo
 	 *
 	 * @param client     Consul client
 	 * @param candidate  leadership election candidate
+	 * @param properties  Consul cluster properties
 	 */
-	public ConsulLeaderInitiator(ConsulClient client, Candidate candidate) {
-		this(client, candidate, DEFAULT_NAMESPACE);
-	}
-
-	/**
-	 * Construct a {@link ConsulLeaderInitiator}.
-	 *
-	 * @param client     Consul client
-	 * @param candidate  leadership election candidate
-	 * @param namespace  namespace base path in zookeeper
-	 */
-	public ConsulLeaderInitiator(ConsulClient client, Candidate candidate, String namespace) {
+	public ConsulLeaderInitiator(ConsulClient client, Candidate candidate, ConsulClusterProperties properties) {
 		this.client = client;
 		this.candidate = candidate;
-		this.namespace = namespace;
+		this.properties = properties.getLeader();
 	}
 	
 	/**
@@ -259,7 +247,7 @@ public class ConsulLeaderInitiator implements Lifecycle, InitializingBean, Dispo
 	 */
 	private String buildLeaderKey() {
 
-		String ns = StringUtils.hasText(namespace) ? namespace : DEFAULT_NAMESPACE;
+		String ns = properties.getNamespace();
 		if (ns.startsWith("/")) {
 			ns = ns.substring(1);
 		}

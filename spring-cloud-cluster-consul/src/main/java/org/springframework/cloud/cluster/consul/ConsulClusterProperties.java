@@ -39,8 +39,10 @@ public class ConsulClusterProperties {
 	
 	public static class LeaderProperties {
 
-		/** if zookeeper leader election is enabled. */
+		/** if consul leader election is enabled. */
 		private boolean enabled = true;
+
+		private String namespace = "spring-cloud/leader/";
 	
 		public boolean isEnabled() {
 			return enabled;
@@ -49,7 +51,14 @@ public class ConsulClusterProperties {
 		public void setEnabled(boolean enabled) {
 			this.enabled = enabled;
 		}
-		
+
+		public String getNamespace() {
+			return namespace;
+		}
+
+		public void setNamespace(String namespace) {
+			this.namespace = namespace;
+		}
 	}
 
 }

@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.ecwid.consul.v1.QueryParams;
 import org.junit.Test;
+import org.springframework.cloud.cluster.consul.ConsulClusterProperties;
 import org.springframework.cloud.cluster.leader.Context;
 import org.springframework.cloud.cluster.leader.DefaultCandidate;
 import org.springframework.cloud.cluster.leader.event.AbstractLeaderEvent;
@@ -77,7 +78,7 @@ public class ConsulTests {
 
 		@Bean
 		public ConsulLeaderInitiator consulLeaderInitiator() throws Exception {
-			ConsulLeaderInitiator initiator = new ConsulLeaderInitiator(consulClient(), candidate());
+			ConsulLeaderInitiator initiator = new ConsulLeaderInitiator(consulClient(), candidate(), new ConsulClusterProperties());
 			initiator.setLeaderEventPublisher(leaderEventPublisher());
 			return initiator;
 		}
