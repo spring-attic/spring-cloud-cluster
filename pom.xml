@@ -7,12 +7,12 @@
 	<packaging>pom</packaging>
 	<name>spring-cloud-cluster</name>
 	<description>Spring Cloud Cluster</description>
-	<version>1.0.0.BUILD-SNAPSHOT</version>
+	<version>1.0.0.M1</version>
 
 	<parent>
 		<groupId>org.springframework.cloud</groupId>
 		<artifactId>spring-cloud-build</artifactId>
-		<version>1.0.0.BUILD-SNAPSHOT</version>
+		<version>1.1.0.M1</version>
 		<relativePath/>
 		<!-- lookup parent from repository -->
 	</parent>
@@ -34,7 +34,7 @@
 	</scm>
 
 	<properties>
-		<spring-cloud.version>1.0.0.BUILD-SNAPSHOT</spring-cloud.version>
+		<spring-cloud-cluster.version>1.0.0.M1</spring-cloud-cluster.version>
 		<curator.version>2.6.0</curator.version>
 		<hazelcast.version>3.3</hazelcast.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -48,22 +48,27 @@
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-cluster-core</artifactId>
-				<version>${spring-cloud.version}</version>
+				<version>${spring-cloud-cluster.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-cluster-autoconfigure</artifactId>
+				<version>${spring-cloud-cluster.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-cluster-zookeeper</artifactId>
-				<version>${spring-cloud.version}</version>
+				<version>${spring-cloud-cluster.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-cluster-hazelcast</artifactId>
-				<version>${spring-cloud.version}</version>
+				<version>${spring-cloud-cluster.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-cluster-redis</artifactId>
-				<version>${spring-cloud.version}</version>
+				<version>${spring-cloud-cluster.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.apache.curator</groupId>
