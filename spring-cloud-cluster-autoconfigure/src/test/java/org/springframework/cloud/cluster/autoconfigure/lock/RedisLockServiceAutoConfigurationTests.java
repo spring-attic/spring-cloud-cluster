@@ -19,7 +19,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
-import org.springframework.boot.autoconfigure.redis.RedisAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.test.EnvironmentTestUtils;
 import org.springframework.cloud.cluster.autoconfigure.TestUtils;
 import org.springframework.cloud.cluster.redis.lock.RedisLockService;
