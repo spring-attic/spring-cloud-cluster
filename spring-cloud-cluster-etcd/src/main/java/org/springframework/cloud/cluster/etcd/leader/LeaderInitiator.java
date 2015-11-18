@@ -16,12 +16,15 @@
 
 package org.springframework.cloud.cluster.etcd.leader;
 
+import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeoutException;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.cloud.cluster.leader.Candidate;
@@ -171,37 +174,48 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		}
 		
 		@Override
-		public Void call() throws Exception {
+		public Void call() {
 			while (running) {
 				try {
 					if (isLeader) {
-						try {
-							client.put(baseDirectory, candidate.getId()).ttl(TTL).prevValue(candidate.getId())
-									.send().get();
-						}
-						catch (EtcdException e) {
-							notifyRevoked();
-						}
+						tryKeepAlive();
 					}
 					else {
-						try {
-							client.put(baseDirectory, candidate.getId()).ttl(TTL).prevExist(false).send().get();
-							notifyGranted();
-						}
-						catch (EtcdException e) {
-							// Keep trying
-						}
+						tryAcquire();
 					}
 					Thread.sleep(HEART_BEAT_SLEEP);
 				}
 				catch (InterruptedException e) {
 					if (isLeader) {
-						client.delete(baseDirectory).prevValue(candidate.getId()).send();
+						tryDeleteCandidateEntry();
 						notifyRevoked();
 					}
 				}
+				catch (IOException | TimeoutException e) {
+					// Continue
+				}
 			}
+			closeClient();
 			return null;
+		}
+
+		private void tryKeepAlive() throws IOException, TimeoutException {
+			try {
+				client.put(baseDirectory, candidate.getId()).ttl(TTL).prevValue(candidate.getId()).send().get();
+			}
+			catch (EtcdException e) {
+				notifyRevoked();
+			}
+		}
+
+		private void tryAcquire() throws IOException, TimeoutException, InterruptedException {
+			try {
+				client.put(baseDirectory, candidate.getId()).ttl(TTL).prevExist(false).send().get();
+				notifyGranted();
+			}
+			catch (EtcdException e) {
+				// Keep trying
+			}
 		}
 
 		private void notifyGranted() throws InterruptedException {
@@ -217,6 +231,26 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 			candidate.onRevoked(context);
 			if (leaderEventPublisher != null) {
 				leaderEventPublisher.publishOnRevoked(LeaderInitiator.this, context);
+			}
+		}
+
+		private void tryDeleteCandidateEntry() {
+			try {
+				client.delete(baseDirectory).prevValue(candidate.getId()).send();
+			}
+			catch (IOException ex) {
+				LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to unset etcd key", ex);
+			}
+		}
+
+		private void closeClient() {
+			if (client != null) {
+				try {
+					client.close();
+				}
+				catch (IOException e) {
+					LoggerFactory.getLogger(getClass()).warn("Exception occurred while closing etcd client", e);
+				}
 			}
 		}
 
