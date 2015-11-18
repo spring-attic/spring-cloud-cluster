@@ -2,4 +2,5 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 org.springframework.cloud.cluster.autoconfigure.leader.LeaderAutoConfiguration,\
 org.springframework.cloud.cluster.autoconfigure.leader.ZookeeperLeaderAutoConfiguration,\
 org.springframework.cloud.cluster.autoconfigure.leader.HazelcastLeaderAutoConfiguration,\
+org.springframework.cloud.cluster.autoconfigure.leader.EtcdLeaderAutoConfiguration,\
 org.springframework.cloud.cluster.autoconfigure.lock.RedisLockServiceAutoConfiguration

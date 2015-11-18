@@ -21,6 +21,7 @@
 		<module>spring-cloud-cluster-core</module>
 		<module>spring-cloud-cluster-zookeeper</module>
 		<module>spring-cloud-cluster-hazelcast</module>
+		<module>spring-cloud-cluster-etcd</module>
 		<module>spring-cloud-cluster-redis</module>
 		<module>spring-cloud-cluster-autoconfigure</module>
 		<module>docs</module>
@@ -37,6 +38,7 @@
 		<spring-cloud-cluster.version>1.0.0.BUILD-SNAPSHOT</spring-cloud-cluster.version>
 		<curator.version>2.8.0</curator.version>
 		<hazelcast.version>3.3</hazelcast.version>
+		<etcd4j.version>2.7.0</etcd4j.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<java.version>1.7</java.version>
 		<start-class>org.springframework.cloud.cluster.test.Application</start-class>
@@ -67,6 +69,11 @@
 			</dependency>
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-cluster-etcd</artifactId>
+				<version>${spring-cloud-cluster.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-cluster-redis</artifactId>
 				<version>${spring-cloud-cluster.version}</version>
 			</dependency>
@@ -89,6 +96,11 @@
 				<artifactId>hazelcast-spring</artifactId>
 				<groupId>com.hazelcast</groupId>
 				<version>${hazelcast.version}</version>
+			</dependency>
+			<dependency>
+  				<groupId>org.mousio</groupId>
+  				<artifactId>etcd4j</artifactId>
+  				<version>${etcd4j.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

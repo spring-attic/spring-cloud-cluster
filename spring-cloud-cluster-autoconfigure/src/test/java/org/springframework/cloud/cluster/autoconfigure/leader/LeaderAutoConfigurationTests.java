@@ -28,7 +28,7 @@ import org.springframework.cloud.cluster.leader.Candidate;
  * Tests for common leadership concepts.
  * 
  * @author Janne Valkealahti
- *
+ * @author Venil Noronha
  */
 public class LeaderAutoConfigurationTests extends AbstractLeaderAutoConfigurationTests {
 
@@ -58,19 +58,32 @@ public class LeaderAutoConfigurationTests extends AbstractLeaderAutoConfiguratio
 		assertThat(config1, notNullValue());
 		assertThat(config1.candidate, notNullValue());		
 	}
+	
+	@Test
+	public void testAutowireSingleEtcdCandidate() {
+		EnvironmentTestUtils.addEnvironment(this.context);
+		context.register(LeaderAutoConfiguration.class, EtcdLeaderAutoConfiguration.class, Config1.class);
+		context.refresh();
+		
+		Config1 config1 = context.getBean(Config1.class);
+		assertThat(config1, notNullValue());
+		assertThat(config1.candidate, notNullValue());		
+	}
 
 	@Test
 	public void testAutowireMultipleCandidates() {
 		EnvironmentTestUtils.addEnvironment(this.context);
 		context.register(LeaderAutoConfiguration.class,
 				ZookeeperLeaderAutoConfiguration.class,
-				HazelcastLeaderAutoConfiguration.class, Config2.class);
+				HazelcastLeaderAutoConfiguration.class,
+				EtcdLeaderAutoConfiguration.class, Config2.class);
 		context.refresh();
 		
 		Config2 config2 = context.getBean(Config2.class);
 		assertThat(config2, notNullValue());
 		assertThat(config2.zookeeperLeaderCandidate, notNullValue());		
-		assertThat(config2.hazelcastLeaderCandidate, notNullValue());		
+		assertThat(config2.hazelcastLeaderCandidate, notNullValue());
+		assertThat(config2.etcdLeaderCandidate, notNullValue());
 	}
 	
 	static class Config1 {
@@ -88,6 +101,11 @@ public class LeaderAutoConfigurationTests extends AbstractLeaderAutoConfiguratio
 		@Autowired
 		@Qualifier("hazelcastLeaderCandidate")
 		Candidate hazelcastLeaderCandidate;
+		
+		@Autowired
+		@Qualifier("etcdLeaderCandidate")
+		Candidate etcdLeaderCandidate;
+		
 	}
 	
 }
