@@ -165,11 +165,21 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	 */
 	class Initiator implements Callable<Void> {
 		
-		private final String baseDirectory;
+		/**
+		 * The base etcd path where candidate id is to be stored.
+		 */
+		private final String basePath;
+		
+		/**
+		 * The {@link EtcdContext}.
+		 */
 		private final EtcdContext context;
 		
+		/**
+		 * Construct a {@link Initiator}.
+		 */
 		public Initiator() {
-			baseDirectory = (namespace == null ? DEFAULT_NAMESPACE : namespace) + "/" + candidate.getRole();
+			basePath = (namespace == null ? DEFAULT_NAMESPACE : namespace) + "/" + candidate.getRole();
 			context = new EtcdContext();
 		}
 		
@@ -178,7 +188,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 			while (running) {
 				try {
 					if (isLeader) {
-						tryKeepAlive();
+						sendHeartBeat();
 					}
 					else {
 						tryAcquire();
@@ -199,18 +209,34 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 			return null;
 		}
 
-		private void tryKeepAlive() throws IOException, TimeoutException {
+		/**
+		 * Sends a heart beat to maintain leadership by refreshing the ttl of the etcd key.
+		 * If the key has a different value during the call, it is assumed that the current
+		 * candidate's leadership is revoked.
+		 * 
+		 * @throws IOException	if the etcd client throws an {@link IOException}.
+		 * @throws TimeoutException	if the etcd client throws an {@link TimeoutException}.
+		 */
+		private void sendHeartBeat() throws IOException, TimeoutException {
 			try {
-				client.put(baseDirectory, candidate.getId()).ttl(TTL).prevValue(candidate.getId()).send().get();
+				client.put(basePath, candidate.getId()).ttl(TTL).prevValue(candidate.getId()).send().get();
 			}
 			catch (EtcdException e) {
 				notifyRevoked();
 			}
 		}
-
+		
+		/**
+		 * Tries to acquire leadership by posting the candidate's id to etcd. If the etcd call
+		 * is successful, it is assumed that the current candidate is now leader.
+		 * 
+		 * @throws IOException	if the etcd client throws an {@link IOException}.
+		 * @throws TimeoutException	if the etcd client throws an {@link TimeoutException}.
+		 * @throws InterruptedException	if notifyGranted throws an {@link InterruptedException}.
+		 */
 		private void tryAcquire() throws IOException, TimeoutException, InterruptedException {
 			try {
-				client.put(baseDirectory, candidate.getId()).ttl(TTL).prevExist(false).send().get();
+				client.put(basePath, candidate.getId()).ttl(TTL).prevExist(false).send().get();
 				notifyGranted();
 			}
 			catch (EtcdException e) {
@@ -218,6 +244,11 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 			}
 		}
 
+		/**
+		 * Notifies that the candidate has acquired leadership.
+		 * 
+		 * @throws InterruptedException	if the {@link LeaderEventPublisher} throws one.
+		 */
 		private void notifyGranted() throws InterruptedException {
 			isLeader = true;
 			candidate.onGranted(context);
@@ -226,6 +257,9 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 			}
 		}
 
+		/**
+		 * Notifies that the candidate's leadership was revoked.
+		 */
 		private void notifyRevoked() {
 			isLeader = false;
 			candidate.onRevoked(context);
@@ -234,15 +268,21 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 			}
 		}
 
+		/**
+		 * Tries to delete the candidate's entry from etcd.
+		 */
 		private void tryDeleteCandidateEntry() {
 			try {
-				client.delete(baseDirectory).prevValue(candidate.getId()).send();
+				client.delete(basePath).prevValue(candidate.getId()).send();
 			}
 			catch (IOException ex) {
 				LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to unset etcd key", ex);
 			}
 		}
 
+		/**
+		 * Closes the {@link EtcdClient}.
+		 */
 		private void closeClient() {
 			if (client != null) {
 				try {
