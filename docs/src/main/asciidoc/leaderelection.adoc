@@ -2,7 +2,7 @@
 
 Leader election allows application to work together with other
 applications to coordinate a cluster leadership via a third party system.
-Currently we provide integrations with `zookeeper` and `hazelcast`.
+Currently we provide integrations with `zookeeper`, `hazelcast` and `etcd`.
 
 From user perspective election is working via interfaces
 `org.springframework.cloud.cluster.leader.Candidate` and
@@ -11,13 +11,13 @@ contains access to leadership's `role` and `id` and also have methods
 `onGranted` and `onRevoked`. These callback methods are useful if
 default `Candidate` implementation is changed.
 
-Leader election is auto-configured if 
-`spring-cloud-cluster-autoconfigure`
-and either `spring-cloud-cluster-hazelcast` or
-`spring-cloud-cluster-zookeeper` jars are found from a classpath. In
+Leader election is auto-configured if `spring-cloud-cluster-autoconfigure`
+and either `spring-cloud-cluster-hazelcast`, `spring-cloud-cluster-zookeeper`
+or `spring-cloud-cluster-etcd` jars are found from a classpath. In
 case where both jars are found leader election is created using both
-systems. See sections <<spring-cloud-cluster-leaderelection-zookeeper>>
-and <<spring-cloud-cluster-leaderelection-hazelcast>> for more
+systems. See sections <<spring-cloud-cluster-leaderelection-zookeeper>>, 
+<<spring-cloud-cluster-leaderelection-hazelcast>> and 
+<<spring-cloud-cluster-leaderelection-etcd>> for more
 information about a created beans.
 
 Default `Candidate` created from auto-configuration is
@@ -103,3 +103,14 @@ based configuration for Hazelcast instance use property
 Hazelcast xml configuration file. `config-location` is a normal spring
 `Resource`.
 
+[[spring-cloud-cluster-leaderelection-etcd]]
+=== Etcd
+`Candidate` implementation for etcd is created with a bean name
+`etcdLeaderCandidate` which can be used to override the one
+created during auto-configuration.
+
+Etcd based election can be explicitly disabled using property
+`spring.cloud.cluster.etcd.leader.enabled`.
+
+Multiple etcd cluster uris can be specified using property 
+`spring.cloud.cluster.etcd.connect`
