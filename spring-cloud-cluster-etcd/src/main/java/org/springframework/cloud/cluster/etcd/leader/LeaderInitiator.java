@@ -49,7 +49,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	private final static String DEFAULT_NAMESPACE = "spring-cloud";
 	
 	/**
-	 * Etcd client.
+	 * {@link EtcdClient} instance.
 	 */
 	private final EtcdClient client;
 
@@ -99,7 +99,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	/**
 	 * Construct a {@link LeaderInitiator}.
 	 *
-	 * @param client     Etcd client
+	 * @param client     {@link EtcdClient} instance
 	 * @param candidate  leadership election candidate
 	 * @param namespace	 Etcd namespace
 	 */
@@ -202,6 +202,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 					}
 				}
 				catch (IOException | TimeoutException e) {
+					LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to access etcd", e);
 					// Continue
 				}
 			}
@@ -214,8 +215,8 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		 * If the key has a different value during the call, it is assumed that the current
 		 * candidate's leadership is revoked.
 		 * 
-		 * @throws IOException	if the etcd client throws an {@link IOException}.
-		 * @throws TimeoutException	if the etcd client throws an {@link TimeoutException}.
+		 * @throws IOException	if the call to {@link EtcdClient} throws a {@link IOException}.
+		 * @throws TimeoutException	if the call to {@link EtcdClient} throws a {@link TimeoutException}.
 		 */
 		private void sendHeartBeat() throws IOException, TimeoutException {
 			try {
@@ -230,9 +231,10 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		 * Tries to acquire leadership by posting the candidate's id to etcd. If the etcd call
 		 * is successful, it is assumed that the current candidate is now leader.
 		 * 
-		 * @throws IOException	if the etcd client throws an {@link IOException}.
-		 * @throws TimeoutException	if the etcd client throws an {@link TimeoutException}.
-		 * @throws InterruptedException	if notifyGranted throws an {@link InterruptedException}.
+		 * @throws IOException	if the call to {@link EtcdClient} throws a {@link IOException}.
+		 * @throws TimeoutException	if the call to {@link EtcdClient} throws a {@link TimeoutException}.
+		 * @throws InterruptedException	if the {@link Candidate} throws a {@link InterruptedException} 
+		 * while notifying leadership grant.
 		 */
 		private void tryAcquire() throws IOException, TimeoutException, InterruptedException {
 			try {
@@ -247,7 +249,8 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		/**
 		 * Notifies that the candidate has acquired leadership.
 		 * 
-		 * @throws InterruptedException	if the {@link LeaderEventPublisher} throws one.
+		 * @throws InterruptedException	if the call to {@link Candidate} throws
+		 * a {@link InterruptedException}.
 		 */
 		private void notifyGranted() throws InterruptedException {
 			isLeader = true;
@@ -275,8 +278,8 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 			try {
 				client.delete(basePath).prevValue(candidate.getId()).send();
 			}
-			catch (IOException ex) {
-				LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to unset etcd key", ex);
+			catch (IOException e) {
+				LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to unset etcd key", e);
 			}
 		}
 
