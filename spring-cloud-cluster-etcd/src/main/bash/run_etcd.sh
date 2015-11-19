@@ -1,3 +1,3 @@
 #!/bin/bash
-etcd --name 'spring-cloud-etcd' --data-dir /tmp/etcd/spring-cloud-etcd
+etcd --name 'spring-cloud-cluster-etcd' --data-dir /tmp/etcd/spring-cloud-cluster-etcd
 
