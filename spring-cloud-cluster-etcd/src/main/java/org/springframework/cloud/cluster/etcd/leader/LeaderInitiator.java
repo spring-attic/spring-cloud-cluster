@@ -40,7 +40,7 @@ import mousio.etcd4j.responses.EtcdException;
 
 /**
  * Bootstrap leadership {@link org.springframework.cloud.cluster.leader.Candidate candidates}
- * with Etcd. Upon construction, {@link #start} must be invoked to
+ * with etcd. Upon construction, {@link #start} must be invoked to
  * register the candidate for leadership election.
  *
  * @author Venil Noronha
@@ -179,37 +179,37 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		private final EtcdContext context;
 		
 		/**
-		 * Executor service for running {@link GrantNotifier} daemon.
+		 * Executor service for running {@link Grantor} daemon.
 		 */
-		private final ExecutorService notificationExecutor = Executors.newSingleThreadExecutor(new ThreadFactory() {
+		private final ExecutorService grantorExecutor = Executors.newSingleThreadExecutor(new ThreadFactory() {
 			@Override
 			public Thread newThread(Runnable r) {
-				Thread thread = new Thread(r, "Etcd-Leadership-GrantNotifier");
+				Thread thread = new Thread(r, "Etcd-Leadership-Grantor");
 				thread.setDaemon(true);
 				return thread;
 			}
 		});
 
 		/**
-		 * Future returned by submitting an {@link GrantNotifier} to {@link #notificationExecutor}.
-		 * This is used to notify leadership revocation to the {@link GrantNotifier}.
+		 * Future returned by submitting a {@link Grantor} to {@link #grantorExecutor}.
+		 * This is used to notify leadership revocation to the {@link Grantor}.
 		 */
-		private volatile Future<Void> notificationFuture;
+		private volatile Future<Void> grantorFuture;
 		
 		/**
-		 * CountDownLatch initialized on beginning the execution of the {@link GrantNotifier} by
-		 * the {@link #notificationExecutor}. This latch is counted down either on finishing the
-		 * notification task normally or on cancellation.
+		 * CountDownLatch initialized on beginning the execution of the {@link Grantor} by
+		 * the {@link #grantorExecutor}. This latch is counted down either on finishing the
+		 * grant task normally or on cancellation of the {@link #grantorFuture}.
 		 */
-		private volatile CountDownLatch notificationCompletionLatch;
+		private volatile CountDownLatch grantorCompletionLatch;
 		
 		/**
-		 * Executor service for running revocation task.
+		 * Executor service for running {@link Revoker} daemon.
 		 */
-		private final ExecutorService revocationExecutor = Executors.newSingleThreadExecutor(new ThreadFactory() {
+		private final ExecutorService revokerExecutor = Executors.newSingleThreadExecutor(new ThreadFactory() {
 			@Override
 			public Thread newThread(Runnable r) {
-				Thread thread = new Thread(r, "Etcd-Leadership-Revocation");
+				Thread thread = new Thread(r, "Etcd-Leadership-Revoker");
 				thread.setDaemon(true);
 				return thread;
 			}
@@ -291,20 +291,19 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 			if (leaderEventPublisher != null) {
 				leaderEventPublisher.publishOnGranted(LeaderInitiator.this, context);
 			}
-			notificationFuture = notificationExecutor.submit(new GrantNotifier());
+			grantorFuture = grantorExecutor.submit(new Grantor());
 		}
 
 		/**
-		 * Cancels the current {@link GrantNotifier} execution if running and
-		 * initiates a {@link RevocationTask}.
+		 * Cancels the current {@link Grantor} execution if running and initiates
+		 * a {@link Revoker}.
 		 * 
-		 * @param deleteEtcdKey	whether the current candidate's key on etcd
-		 * should be deleted after {@link RevocationTask} has performed all
-		 * notifications.
+		 * @param deleteEtcdEntry	whether the current candidate's entry should
+		 * be deleted from etcd after {@link Revoker} has finished notifying.
 		 */
-		private void initiateRevocation(boolean deleteEtcdKey) {
-			notificationFuture.cancel(true);
-			revocationExecutor.submit(new RevocationTask(deleteEtcdKey));
+		private void initiateRevocation(boolean deleteEtcdEntry) {
+			grantorFuture.cancel(true);
+			revokerExecutor.submit(new Revoker(deleteEtcdEntry));
 		}
 
 		/**
@@ -315,7 +314,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 				client.delete(basePath).prevValue(candidate.getId()).send().get();
 			}
 			catch (EtcdException e) {
-				LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to delete candidate key", e); 
+				LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to delete candidate key from etcd", e); 
 			}
 			catch (IOException | TimeoutException e) {
 				LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to access etcd", e);
@@ -323,18 +322,18 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		}
 
 		/**
-		 * Shuts down {@link #notificationExecutor} and {@link #revocationExecutor}
-		 * and waits for {@link #revocationExecutor} to finish running all tasks
+		 * Shuts down the {@link #grantorExecutor} and the {@link #revokerExecutor}
+		 * and waits for {@link #revokerExecutor} to finish running all tasks
 		 * before shutting down the {@link EtcdClient}.
 		 */
 		private void cleanShutdown() {
-			notificationExecutor.shutdown();
-			revocationExecutor.shutdown();
+			grantorExecutor.shutdown();
+			revokerExecutor.shutdown();
 			try {
-				// No need to wait for notificationExecutor to finish all its tasks as
-				// the RevocationTask is already doing that. Termination of the
-				// revocationExecutor shouldn't ideally take more than a few seconds.
-				revocationExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+				// No need to wait for grantorExecutor to finish all its tasks as the
+				// Revoker is already doing that. Termination of the revokerExecutor
+				// shouldn't ideally take more than a few seconds.
+				revokerExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
 			}
 			catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
@@ -359,19 +358,19 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		/**
 		 * Grant event notification callable.
 		 */
-		class GrantNotifier implements Callable<Void> {
+		class Grantor implements Callable<Void> {
 
 			@Override
 			public Void call() {
-				notificationCompletionLatch = new CountDownLatch(1);
+				grantorCompletionLatch = new CountDownLatch(1);
 				try {
 					candidate.onGranted(context);
 				}
 				catch (InterruptedException e) {
-					// On cancellation of the GrantNotifier execution.
+					// On cancellation of the Grantor execution.
 				}
 				finally {
-					notificationCompletionLatch.countDown();
+					grantorCompletionLatch.countDown();
 				}
 				return null;
 			}
@@ -379,45 +378,44 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		}
 		
 		/**
-		 * Task that waits for {@link GrantNotifier} to complete before publishing
-		 * revocation events and resetting key on Etcd.
+		 * Callable that waits for {@link Grantor} to complete before
+		 * publishing revocation events and resetting key on etcd.
 		 */
-		class RevocationTask implements Callable<Void> {
+		class Revoker implements Callable<Void> {
 
 			/**
-			 * Flag that indicates whether the current candidate's key on
-			 * etcd should be deleted after performing all notifications.
+			 * Flag that indicates whether the current candidate's entry should
+			 * be deleted from etcd after performing all notifications.
 			 */
-			private final boolean deleteEtcdKey;
+			private final boolean deleteEtcdEntry;
 
 			/**
-			 * Construct a {@link RevocationTask}.
+			 * Construct a {@link Revoker}.
 			 * 
-			 * @param deleteEtcdKey	whether the current candidate's key on
-			 * etcd should be deleted after performing all notifications.
+			 * @param deleteEtcdEntry	whether the current candidate's entry
+			 * should be deleted from etcd after performing all notifications.
 			 */
-			public RevocationTask(boolean deleteEtcdKey) {
-				this.deleteEtcdKey = deleteEtcdKey;
+			public Revoker(boolean deleteEtcdEntry) {
+				this.deleteEtcdEntry = deleteEtcdEntry;
 			}
 
 			@Override
 			public Void call() {
 				try {
-					notificationCompletionLatch.await();
+					grantorCompletionLatch.await();
 				}
 				catch (InterruptedException e) {
-					// On shutdown of the executor running this RevocationTask.
+					// On shutdown of the executor running this Revoker.
 				}
-				// At any given point in time, multiple RevocationTaskS may be
-				// lined up at the revocationExecutor. Therefore, we need to
-				// test the state of leadership before actually publishing to
-				// prevent generation of multiple revocation notifications.
+				// At any given point in time, multiple RevokerS might be lined up
+				// at the revokerExecutor. Therefore, we need to test the state of
+				// leadership to prevent generation of multiple revocation events.
 				if (isLeader.compareAndSet(true, false)) {
 					if (leaderEventPublisher != null) {
 						leaderEventPublisher.publishOnRevoked(LeaderInitiator.this, context);
 					}
 					candidate.onRevoked(context);
-					if (deleteEtcdKey) {
+					if (deleteEtcdEntry) {
 						tryDeleteCandidateEntry();
 					}
 				}
