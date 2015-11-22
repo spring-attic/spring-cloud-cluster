@@ -312,10 +312,13 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		 */
 		private void tryDeleteCandidateEntry() {
 			try {
-				client.delete(basePath).prevValue(candidate.getId()).send();
+				client.delete(basePath).prevValue(candidate.getId()).send().get();
 			}
-			catch (IOException e) {
-				LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to unset etcd key", e);
+			catch (EtcdException e) {
+				LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to delete candidate key", e); 
+			}
+			catch (IOException | TimeoutException e) {
+				LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to access etcd", e);
 			}
 		}
 
