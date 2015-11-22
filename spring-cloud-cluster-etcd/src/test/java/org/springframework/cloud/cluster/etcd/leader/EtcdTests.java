@@ -74,7 +74,7 @@ public class EtcdTests {
 			return new TestCandidate();
 		}
 
-		@Bean
+		@Bean(destroyMethod = "")
 		public EtcdClient etcdInstance() {
 			return new EtcdClient(URI.create("http://localhost:4001"));
 		}
@@ -132,7 +132,7 @@ public class EtcdTests {
 			return new YieldTestCandidate();
 		}
 
-		@Bean
+		@Bean(destroyMethod = "")
 		public EtcdClient etcdInstance() {
 			return new EtcdClient(URI.create("http://localhost:4001"));
 		}
@@ -164,12 +164,14 @@ public class EtcdTests {
 		@Override
 		public void onGranted(Context ctx) {
 			onGrantedLatch.countDown();
+			super.onGranted(ctx);
 			ctx.yield();
 		}
 		
 		@Override
 		public void onRevoked(Context ctx) {
 			onRevokedLatch.countDown();
+			super.onRevoked(ctx);
 		}
 
 	}
