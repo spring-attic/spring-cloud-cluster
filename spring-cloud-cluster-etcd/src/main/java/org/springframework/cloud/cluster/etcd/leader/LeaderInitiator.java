@@ -48,7 +48,7 @@ import mousio.etcd4j.responses.EtcdException;
 public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableBean {
 
 	private final static int TTL = 10;
-	private final static int HEART_BEAT_SLEEP = 1000 * (TTL / 2);
+	private final static int HEART_BEAT_SLEEP = TTL / 2;
 	private final static String DEFAULT_NAMESPACE = "spring-cloud";
 	
 	/**
@@ -233,7 +233,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 					else {
 						tryAcquire();
 					}
-					Thread.sleep(HEART_BEAT_SLEEP);
+					TimeUnit.SECONDS.sleep(HEART_BEAT_SLEEP);
 				}
 				catch (InterruptedException e) {
 					if (isLeader.get()) {
@@ -405,7 +405,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 					grantorCompletionLatch.await();
 				}
 				catch (InterruptedException e) {
-					// On shutdown of the executor running this Revoker.
+					// On interrupting this Revoker.
 				}
 				// At any given point in time, multiple RevokerS might be lined up
 				// at the revokerExecutor. Therefore, we need to test the state of
