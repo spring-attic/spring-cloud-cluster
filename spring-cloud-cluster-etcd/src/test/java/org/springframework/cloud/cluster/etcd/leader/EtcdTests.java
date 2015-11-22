@@ -48,8 +48,6 @@ import mousio.etcd4j.responses.EtcdException;
  */
 public class EtcdTests {
 
-	private static final String ETCD_BLOCKING_THREAD_TEST = "etcd-blocking-thread-test";
-	
 	@Test
 	public void testSimpleLeader() throws InterruptedException {
 		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(Config1.class);
@@ -78,10 +76,9 @@ public class EtcdTests {
 		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(BlockingThreadTestConfig.class);
 		BlockingThreadTestCandidate candidate = ctx.getBean(BlockingThreadTestCandidate.class);
 		YieldTestEventListener listener = ctx.getBean(YieldTestEventListener.class);
-		EtcdClient client = ctx.getBean(EtcdClient.class);
 		assertThat(candidate.onGrantedLatch.await(5, TimeUnit.SECONDS), is(true));
 		Thread.sleep(2000); // Let the grant-notification thread run for a while
-		client.put(ETCD_BLOCKING_THREAD_TEST + "/leader", "some-other-candidate").ttl(10).send().get(); // Mock leadership cancellation
+		candidate.ctx.yield(); // Internally interrupts the grant notification thread
 		assertThat(candidate.onRevokedLatch.await(5, TimeUnit.SECONDS), is(true));
 		assertThat(listener.onEventsLatch.await(10, TimeUnit.SECONDS), is(true));
 		assertThat(listener.events.size(), is(2));
@@ -227,7 +224,7 @@ public class EtcdTests {
 
 		@Bean
 		public LeaderInitiator initiator() {
-			LeaderInitiator initiator = new LeaderInitiator(etcdInstance(), candidate(), ETCD_BLOCKING_THREAD_TEST);
+			LeaderInitiator initiator = new LeaderInitiator(etcdInstance(), candidate(), "etcd-blocking-thread-test");
 			initiator.setLeaderEventPublisher(leaderEventPublisher());
 			return initiator;
 		}
