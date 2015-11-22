@@ -400,13 +400,8 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 			}
 
 			@Override
-			public Void call() {
-				try {
-					grantorCompletionLatch.await();
-				}
-				catch (InterruptedException e) {
-					// On interrupting this Revoker.
-				}
+			public Void call() throws InterruptedException {
+				grantorCompletionLatch.await();
 				// At any given point in time, multiple RevokerS might be lined up
 				// at the revokerExecutor. Therefore, we need to test the state of
 				// leadership to prevent generation of multiple revocation events.
