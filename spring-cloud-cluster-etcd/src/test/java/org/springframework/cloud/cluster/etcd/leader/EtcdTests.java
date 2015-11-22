@@ -53,6 +53,18 @@ public class EtcdTests {
 		assertThat(listener.events.size(), is(1));
 		ctx.close();
 	}
+	
+	@Test
+	public void testLeaderYield() throws InterruptedException {
+		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(YieldTestConfig.class);
+		YieldTestCandidate candidate = ctx.getBean(YieldTestCandidate.class);
+		YieldTestEventListener listener = ctx.getBean(YieldTestEventListener.class);
+		assertThat(candidate.onGrantedLatch.await(5, TimeUnit.SECONDS), is(true));
+		assertThat(candidate.onRevokedLatch.await(5, TimeUnit.SECONDS), is(true));
+		assertThat(listener.onEventsLatch.await(10, TimeUnit.SECONDS), is(true));
+		assertThat(listener.events.size(), is(2));
+		ctx.close();
+	}
 
 	@Configuration
 	static class Config1 {
@@ -108,6 +120,70 @@ public class EtcdTests {
 		public void onApplicationEvent(AbstractLeaderEvent event) {
 			events.add(event);
 			onEventLatch.countDown();
+		}
+		
+	}
+	
+	@Configuration
+	static class YieldTestConfig {
+
+		@Bean
+		public YieldTestCandidate candidate() {
+			return new YieldTestCandidate();
+		}
+
+		@Bean
+		public EtcdClient etcdInstance() {
+			return new EtcdClient(URI.create("http://localhost:4001"));
+		}
+
+		@Bean
+		public LeaderInitiator initiator() {
+			LeaderInitiator initiator = new LeaderInitiator(etcdInstance(), candidate(), "etcd-yield-test");
+			initiator.setLeaderEventPublisher(leaderEventPublisher());
+			return initiator;
+		}
+
+		@Bean
+		public LeaderEventPublisher leaderEventPublisher() {
+			return new DefaultLeaderEventPublisher();
+		}		
+		
+		@Bean
+		public YieldTestEventListener testEventListener() {
+			return new YieldTestEventListener();
+		}
+		
+	}
+	
+	static class YieldTestCandidate extends DefaultCandidate {
+
+		CountDownLatch onGrantedLatch = new CountDownLatch(1);
+		CountDownLatch onRevokedLatch = new CountDownLatch(1);
+
+		@Override
+		public void onGranted(Context ctx) {
+			onGrantedLatch.countDown();
+			ctx.yield();
+		}
+		
+		@Override
+		public void onRevoked(Context ctx) {
+			onRevokedLatch.countDown();
+		}
+
+	}
+
+	static class YieldTestEventListener implements ApplicationListener<AbstractLeaderEvent> {
+
+		CountDownLatch onEventsLatch = new CountDownLatch(2);
+		
+		ArrayList<AbstractLeaderEvent> events = new ArrayList<AbstractLeaderEvent>();
+		
+		@Override
+		public void onApplicationEvent(AbstractLeaderEvent event) {
+			events.add(event);
+			onEventsLatch.countDown();
 		}
 		
 	}
