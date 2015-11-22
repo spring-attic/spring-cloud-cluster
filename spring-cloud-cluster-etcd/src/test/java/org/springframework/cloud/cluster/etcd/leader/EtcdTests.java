@@ -18,12 +18,16 @@ package org.springframework.cloud.cluster.etcd.leader;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
+import org.springframework.cloud.cluster.leader.AbstractCandidate;
 import org.springframework.cloud.cluster.leader.Context;
 import org.springframework.cloud.cluster.leader.DefaultCandidate;
 import org.springframework.cloud.cluster.leader.event.AbstractLeaderEvent;
@@ -35,6 +39,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import mousio.etcd4j.EtcdClient;
+import mousio.etcd4j.responses.EtcdException;
 
 /**
  * Tests for etcd leader election.
@@ -43,6 +48,8 @@ import mousio.etcd4j.EtcdClient;
  */
 public class EtcdTests {
 
+	private static final String ETCD_BLOCKING_THREAD_TEST = "etcd-blocking-thread-test";
+	
 	@Test
 	public void testSimpleLeader() throws InterruptedException {
 		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(Config1.class);
@@ -60,6 +67,21 @@ public class EtcdTests {
 		YieldTestCandidate candidate = ctx.getBean(YieldTestCandidate.class);
 		YieldTestEventListener listener = ctx.getBean(YieldTestEventListener.class);
 		assertThat(candidate.onGrantedLatch.await(5, TimeUnit.SECONDS), is(true));
+		assertThat(candidate.onRevokedLatch.await(5, TimeUnit.SECONDS), is(true));
+		assertThat(listener.onEventsLatch.await(10, TimeUnit.SECONDS), is(true));
+		assertThat(listener.events.size(), is(2));
+		ctx.close();
+	}
+	
+	@Test
+	public void testBlockingThreadLeader() throws InterruptedException, IOException, EtcdException, TimeoutException {
+		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(BlockingThreadTestConfig.class);
+		BlockingThreadTestCandidate candidate = ctx.getBean(BlockingThreadTestCandidate.class);
+		YieldTestEventListener listener = ctx.getBean(YieldTestEventListener.class);
+		EtcdClient client = ctx.getBean(EtcdClient.class);
+		assertThat(candidate.onGrantedLatch.await(5, TimeUnit.SECONDS), is(true));
+		Thread.sleep(2000); // Let the grant-notification thread run for a while
+		client.put(ETCD_BLOCKING_THREAD_TEST + "/leader", "some-other-candidate").ttl(10).send().get(); // Mock leadership cancellation
 		assertThat(candidate.onRevokedLatch.await(5, TimeUnit.SECONDS), is(true));
 		assertThat(listener.onEventsLatch.await(10, TimeUnit.SECONDS), is(true));
 		assertThat(listener.events.size(), is(2));
@@ -163,15 +185,15 @@ public class EtcdTests {
 
 		@Override
 		public void onGranted(Context ctx) {
-			onGrantedLatch.countDown();
 			super.onGranted(ctx);
+			onGrantedLatch.countDown();
 			ctx.yield();
 		}
 		
 		@Override
 		public void onRevoked(Context ctx) {
-			onRevokedLatch.countDown();
 			super.onRevoked(ctx);
+			onRevokedLatch.countDown();
 		}
 
 	}
@@ -188,6 +210,69 @@ public class EtcdTests {
 			onEventsLatch.countDown();
 		}
 		
+	}
+	
+	@Configuration
+	static class BlockingThreadTestConfig {
+
+		@Bean
+		public BlockingThreadTestCandidate candidate() {
+			return new BlockingThreadTestCandidate();
+		}
+
+		@Bean(destroyMethod = "")
+		public EtcdClient etcdInstance() {
+			return new EtcdClient(URI.create("http://localhost:4001"));
+		}
+
+		@Bean
+		public LeaderInitiator initiator() {
+			LeaderInitiator initiator = new LeaderInitiator(etcdInstance(), candidate(), ETCD_BLOCKING_THREAD_TEST);
+			initiator.setLeaderEventPublisher(leaderEventPublisher());
+			return initiator;
+		}
+
+		@Bean
+		public LeaderEventPublisher leaderEventPublisher() {
+			return new DefaultLeaderEventPublisher();
+		}		
+		
+		@Bean
+		public YieldTestEventListener testEventListener() {
+			return new YieldTestEventListener();
+		}
+		
+	}
+	
+	static class BlockingThreadTestCandidate extends AbstractCandidate {
+
+		CountDownLatch onGrantedLatch = new CountDownLatch(1);
+		CountDownLatch onRevokedLatch = new CountDownLatch(1);
+		Context ctx = null;
+
+		@Override
+		public void onGranted(Context ctx) throws InterruptedException {
+			this.ctx = ctx;
+			LoggerFactory.getLogger(getClass()).info("{} has been granted leadership; context: {}", this, ctx);
+			onGrantedLatch.countDown();
+			while (true) {
+				LoggerFactory.getLogger(getClass()).info("{} is doing some heavy lifting", this);
+				try {
+					Thread.sleep(1000); // Mock heavy lifting
+				}
+				catch (InterruptedException e) {
+					LoggerFactory.getLogger(getClass()).info("{} was interrupted, rethrowing the exception", this);
+					throw e;
+				}
+			}
+		}
+		
+		@Override
+		public void onRevoked(Context ctx) {
+			LoggerFactory.getLogger(getClass()).info("{} leadership has been revoked", this, ctx);
+			onRevokedLatch.countDown();
+		}
+
 	}
 	
 }
