@@ -257,27 +257,31 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		
 		@Override
 		public Void call() {
-			while (running) {
-				try {
-					if (isLeader) {
-						sendHeartBeat();
+			try {
+				while (running) {
+					try {
+						if (isLeader) {
+							sendHeartBeat();
+						}
+						else {
+							tryAcquire();
+						}
+						TimeUnit.SECONDS.sleep(HEART_BEAT_SLEEP);
 					}
-					else {
-						tryAcquire();
+					catch (IOException | TimeoutException e) {
+						LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to access etcd", e);
+						// Continue
 					}
-					TimeUnit.SECONDS.sleep(HEART_BEAT_SLEEP);
-				}
-				catch (InterruptedException e) {
-					// If the initiator future was cancelled
-				}
-				catch (IOException | TimeoutException e) {
-					LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to access etcd", e);
-					// Continue
 				}
 			}
-			if (isLeader) {
-				tryDeleteCandidateEntry();
-				notifyRevoked();
+			catch (InterruptedException e) {
+				// If the initiator future was cancelled
+			}
+			finally {
+				if (isLeader) {
+					tryDeleteCandidateEntry();
+					notifyRevoked();
+				}
 			}
 			return null;
 		}
