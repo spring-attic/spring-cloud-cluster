@@ -18,14 +18,12 @@ package org.springframework.cloud.cluster.etcd.leader;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
@@ -62,17 +60,24 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	private final Candidate candidate;
 
 	/**
-	 * Etcd namespace.
-	 */
-	private final String namespace;
-	
-	/**
 	 * Executor service for running leadership daemon.
 	 */
-	private final ExecutorService executorService = Executors.newSingleThreadExecutor(new ThreadFactory() {
+	private final ExecutorService leaderExecutorService = Executors.newSingleThreadExecutor(new ThreadFactory() {
 		@Override
 		public Thread newThread(Runnable r) {
 			Thread thread = new Thread(r, "Etcd-Leadership");
+			thread.setDaemon(true);
+			return thread;
+		}
+	});
+	
+	/**
+	 * Executor service for running leadership worker daemon.
+	 */
+	private final ExecutorService workerExecutorService = Executors.newSingleThreadExecutor(new ThreadFactory() {
+		@Override
+		public Thread newThread(Runnable r) {
+			Thread thread = new Thread(r, "Etcd-Leadership-Worker");
 			thread.setDaemon(true);
 			return thread;
 		}
@@ -82,13 +87,19 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	 * Flag that indicates whether the current candidate is
 	 * the leader.
 	 */
-	private volatile AtomicBoolean isLeader = new AtomicBoolean(false);
+	private volatile boolean isLeader = false;
 	
 	/**
-	 * Future returned by submitting an {@link Initiator} to {@link #executorService}.
+	 * Future returned by submitting a {@link Initiator} to {@link #leaderExecutorService}.
 	 * This is used to cancel leadership.
 	 */
-	private volatile Future<Void> future;
+	private volatile Future<Void> initiatorFuture;
+	
+	/**
+	 * Future returned by submitting a {@link Worker} to {@link #workerExecutorService}.
+	 * This is used to notify leadership revocation.
+	 */
+	private volatile Future<Void> workerFuture;
 
 	/**
 	 * Flag that indicates whether the leadership election for
@@ -96,8 +107,20 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	 */
 	private volatile boolean running;
 
-	/** Leader event publisher if set */
+	/**
+	 * Leader event publisher if set.
+	 */
 	private LeaderEventPublisher leaderEventPublisher;
+	
+	/**
+	 * The {@link EtcdContext} instance.
+	 */
+	private final EtcdContext context;
+
+	/**
+	 * The base etcd path where candidate id is to be stored.
+	 */
+	private final String baseEtcdPath;
 	
 	/**
 	 * Construct a {@link LeaderInitiator}.
@@ -109,7 +132,8 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	public LeaderInitiator(EtcdClient client, Candidate candidate, String namespace) {
 		this.client = client;
 		this.candidate = candidate;
-		this.namespace = namespace;
+		this.context = new EtcdContext();
+		this.baseEtcdPath = (namespace == null ? DEFAULT_NAMESPACE : namespace) + "/" + candidate.getRole();
 	}
 
 	/**
@@ -119,7 +143,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	public synchronized void start() {
 		if (!running) {
 			running = true;
-			future = executorService.submit(new Initiator());
+			initiatorFuture = leaderExecutorService.submit(new Initiator());
 		}
 	}
 
@@ -131,7 +155,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	public synchronized void stop() {
 		if (running) {
 			running = false;
-			future.cancel(true);
+			initiatorFuture.cancel(true);
 		}
 	}
 
@@ -151,7 +175,10 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	@Override
 	public void destroy() throws Exception {
 		stop();
-		executorService.shutdown();
+		workerExecutorService.shutdown();
+		leaderExecutorService.shutdown();
+		workerExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+		leaderExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
 	}
 	
 	/**
@@ -162,72 +189,77 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	public void setLeaderEventPublisher(LeaderEventPublisher leaderEventPublisher) {
 		this.leaderEventPublisher = leaderEventPublisher;
 	}
+
+	/**
+	 * Notifies that the candidate has acquired leadership.
+	 */
+	private void notifyGranted() {
+		isLeader = true;
+		if (leaderEventPublisher != null) {
+			leaderEventPublisher.publishOnGranted(LeaderInitiator.this, context);
+		}
+		workerFuture = workerExecutorService.submit(new Worker());
+	}
+	
+	/**
+	 * Notifies that the candidate's leadership was revoked.
+	 */
+	private void notifyRevoked() {
+		isLeader = false;
+		if (leaderEventPublisher != null) {
+			leaderEventPublisher.publishOnRevoked(LeaderInitiator.this, context);
+		}
+		workerFuture.cancel(true);
+	}
+
+	/**
+	 * Tries to delete the candidate's entry from etcd.
+	 */
+	private void tryDeleteCandidateEntry() {
+		try {
+			client.delete(baseEtcdPath).prevValue(candidate.getId()).send().get();
+		}
+		catch (EtcdException e) {
+			LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to delete candidate key from etcd", e); 
+		}
+		catch (IOException | TimeoutException e) {
+			LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to access etcd", e);
+		}
+	}
+
+	/**
+	 * Callable that invokes {@link Candidate#onGranted(Context)}
+	 * when the candidate is granted leadership.
+	 */
+	class Worker implements Callable<Void> {
+
+		@Override
+		public Void call() {
+			try {
+				candidate.onGranted(context);
+				Thread.sleep(Long.MAX_VALUE);
+			}
+			catch (InterruptedException e) {
+				// If the candidate's leadership was revoked
+			}
+			finally {
+				candidate.onRevoked(context);
+			}
+			return null;
+		}
+
+	}
 	
 	/**
 	 * Callable that manages the etcd heart beats for leadership election.
 	 */
 	class Initiator implements Callable<Void> {
 		
-		/**
-		 * The base etcd path where candidate id is to be stored.
-		 */
-		private final String basePath;
-		
-		/**
-		 * The {@link EtcdContext}.
-		 */
-		private final EtcdContext context;
-		
-		/**
-		 * Executor service for running {@link Grantor} daemon.
-		 */
-		private final ExecutorService grantorExecutor = Executors.newSingleThreadExecutor(new ThreadFactory() {
-			@Override
-			public Thread newThread(Runnable r) {
-				Thread thread = new Thread(r, "Etcd-Leadership-Grantor");
-				thread.setDaemon(true);
-				return thread;
-			}
-		});
-
-		/**
-		 * Future returned by submitting a {@link Grantor} to {@link #grantorExecutor}.
-		 * This is used to notify leadership revocation to the {@link Grantor}.
-		 */
-		private volatile Future<Void> grantorFuture;
-		
-		/**
-		 * CountDownLatch initialized on beginning the execution of the {@link Grantor} by
-		 * the {@link #grantorExecutor}. This latch is counted down either on finishing the
-		 * grant task normally or on cancellation of the {@link #grantorFuture}.
-		 */
-		private volatile CountDownLatch grantorCompletionLatch;
-		
-		/**
-		 * Executor service for running {@link Revoker} daemon.
-		 */
-		private final ExecutorService revokerExecutor = Executors.newSingleThreadExecutor(new ThreadFactory() {
-			@Override
-			public Thread newThread(Runnable r) {
-				Thread thread = new Thread(r, "Etcd-Leadership-Revoker");
-				thread.setDaemon(true);
-				return thread;
-			}
-		});
-		
-		/**
-		 * Construct a {@link Initiator}.
-		 */
-		public Initiator() {
-			basePath = (namespace == null ? DEFAULT_NAMESPACE : namespace) + "/" + candidate.getRole();
-			context = new EtcdContext();
-		}
-		
 		@Override
 		public Void call() {
 			while (running) {
 				try {
-					if (isLeader.get()) {
+					if (isLeader) {
 						sendHeartBeat();
 					}
 					else {
@@ -236,16 +268,17 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 					TimeUnit.SECONDS.sleep(HEART_BEAT_SLEEP);
 				}
 				catch (InterruptedException e) {
-					if (isLeader.get()) {
-						initiateRevocation(true);
-					}
+					// If the initiator future was cancelled
 				}
 				catch (IOException | TimeoutException e) {
 					LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to access etcd", e);
 					// Continue
 				}
 			}
-			cleanShutdown();
+			if (isLeader) {
+				tryDeleteCandidateEntry();
+				notifyRevoked();
+			}
 			return null;
 		}
 
@@ -259,10 +292,10 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		 */
 		private void sendHeartBeat() throws IOException, TimeoutException {
 			try {
-				client.put(basePath, candidate.getId()).ttl(TTL).prevValue(candidate.getId()).send().get();
+				client.put(baseEtcdPath, candidate.getId()).ttl(TTL).prevValue(candidate.getId()).send().get();
 			}
 			catch (EtcdException e) {
-				initiateRevocation(false);
+				notifyRevoked();
 			}
 		}
 		
@@ -275,173 +308,38 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		 */
 		private void tryAcquire() throws IOException, TimeoutException {
 			try {
-				client.put(basePath, candidate.getId()).ttl(TTL).prevExist(false).send().get();
+				client.put(baseEtcdPath, candidate.getId()).ttl(TTL).prevExist(false).send().get();
 				notifyGranted();
 			}
 			catch (EtcdException e) {
-				// Keep trying
+				// Couldn't set the value to current candidate's id, therefore, keep trying.
 			}
 		}
 
-		/**
-		 * Notifies that the candidate has acquired leadership.
-		 */
-		private void notifyGranted() {
-			isLeader.set(true);
-			if (leaderEventPublisher != null) {
-				leaderEventPublisher.publishOnGranted(LeaderInitiator.this, context);
-			}
-			grantorFuture = grantorExecutor.submit(new Grantor());
+	}
+
+	/**
+	 * Implementation of leadership context backed by Etcd.
+	 */
+	class EtcdContext implements Context {
+
+		@Override
+		public boolean isLeader() {
+			return isLeader;
 		}
 
-		/**
-		 * Cancels the current {@link Grantor} execution if running and initiates
-		 * a {@link Revoker}.
-		 * 
-		 * @param deleteEtcdEntry	whether the current candidate's entry should
-		 * be deleted from etcd after {@link Revoker} has finished notifying.
-		 */
-		private void initiateRevocation(boolean deleteEtcdEntry) {
-			grantorFuture.cancel(true);
-			revokerExecutor.submit(new Revoker(deleteEtcdEntry));
-		}
-
-		/**
-		 * Tries to delete the candidate's entry from etcd.
-		 */
-		private void tryDeleteCandidateEntry() {
-			try {
-				client.delete(basePath).prevValue(candidate.getId()).send().get();
-			}
-			catch (EtcdException e) {
-				LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to delete candidate key from etcd", e); 
-			}
-			catch (IOException | TimeoutException e) {
-				LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to access etcd", e);
+		@Override
+		public void yield() {
+			if (isLeader) {
+				tryDeleteCandidateEntry();
+				notifyRevoked();
 			}
 		}
 
-		/**
-		 * Shuts down the {@link #grantorExecutor} and the {@link #revokerExecutor}
-		 * and waits for {@link #revokerExecutor} to finish running all tasks
-		 * before shutting down the {@link EtcdClient}.
-		 */
-		private void cleanShutdown() {
-			grantorExecutor.shutdown();
-			revokerExecutor.shutdown();
-			try {
-				// No need to wait for grantorExecutor to finish all its tasks as the
-				// Revoker is already doing that. Termination of the revokerExecutor
-				// shouldn't ideally take more than a few seconds.
-				revokerExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-			}
-			catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
-			closeClient();
-		}
-
-		/**
-		 * Closes the {@link EtcdClient}.
-		 */
-		private void closeClient() {
-			if (client != null) {
-				try {
-					client.close();
-				}
-				catch (IOException e) {
-					LoggerFactory.getLogger(getClass()).warn("Exception occurred while closing etcd client", e);
-				}
-			}
-		}
-		
-		/**
-		 * Grant event notification callable.
-		 */
-		class Grantor implements Callable<Void> {
-
-			@Override
-			public Void call() {
-				grantorCompletionLatch = new CountDownLatch(1);
-				try {
-					candidate.onGranted(context);
-				}
-				catch (InterruptedException e) {
-					// On cancellation of the Grantor execution.
-				}
-				finally {
-					grantorCompletionLatch.countDown();
-				}
-				return null;
-			}
-			
-		}
-		
-		/**
-		 * Callable that waits for {@link Grantor} to complete before
-		 * publishing revocation events and resetting key on etcd.
-		 */
-		class Revoker implements Callable<Void> {
-
-			/**
-			 * Flag that indicates whether the current candidate's entry should
-			 * be deleted from etcd after performing all notifications.
-			 */
-			private final boolean deleteEtcdEntry;
-
-			/**
-			 * Construct a {@link Revoker}.
-			 * 
-			 * @param deleteEtcdEntry	whether the current candidate's entry
-			 * should be deleted from etcd after performing all notifications.
-			 */
-			public Revoker(boolean deleteEtcdEntry) {
-				this.deleteEtcdEntry = deleteEtcdEntry;
-			}
-
-			@Override
-			public Void call() throws InterruptedException {
-				grantorCompletionLatch.await();
-				// At any given point in time, multiple RevokerS might be lined up
-				// at the revokerExecutor. Therefore, we need to test the state of
-				// leadership to prevent generation of multiple revocation events.
-				if (isLeader.compareAndSet(true, false)) {
-					if (leaderEventPublisher != null) {
-						leaderEventPublisher.publishOnRevoked(LeaderInitiator.this, context);
-					}
-					candidate.onRevoked(context);
-					if (deleteEtcdEntry) {
-						tryDeleteCandidateEntry();
-					}
-				}
-				return null;
-			}
-			
-		}
-
-		/**
-		 * Implementation of leadership context backed by Etcd.
-		 */
-		class EtcdContext implements Context {
-
-			@Override
-			public boolean isLeader() {
-				return isLeader.get();
-			}
-
-			@Override
-			public void yield() {
-				if (isLeader.get()) {
-					initiateRevocation(true);
-				}
-			}
-
-			@Override
-			public String toString() {
-				return String.format("EtcdContext{role=%s, id=%s, isLeader=%s}",
-						candidate.getRole(), candidate.getId(), isLeader());
-			}
-			
+		@Override
+		public String toString() {
+			return String.format("EtcdContext{role=%s, id=%s, isLeader=%s}",
+					candidate.getRole(), candidate.getId(), isLeader());
 		}
 
 	}
