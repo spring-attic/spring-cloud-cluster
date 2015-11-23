@@ -93,7 +93,7 @@ public class EtcdTests {
 			return new TestCandidate();
 		}
 
-		@Bean(destroyMethod = "")
+		@Bean
 		public EtcdClient etcdInstance() {
 			return new EtcdClient(URI.create("http://localhost:4001"));
 		}
@@ -151,7 +151,7 @@ public class EtcdTests {
 			return new YieldTestCandidate();
 		}
 
-		@Bean(destroyMethod = "")
+		@Bean
 		public EtcdClient etcdInstance() {
 			return new EtcdClient(URI.create("http://localhost:4001"));
 		}
@@ -217,7 +217,7 @@ public class EtcdTests {
 			return new BlockingThreadTestCandidate();
 		}
 
-		@Bean(destroyMethod = "")
+		@Bean
 		public EtcdClient etcdInstance() {
 			return new EtcdClient(URI.create("http://localhost:4001"));
 		}

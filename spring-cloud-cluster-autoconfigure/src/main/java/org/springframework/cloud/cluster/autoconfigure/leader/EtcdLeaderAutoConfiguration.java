@@ -63,7 +63,7 @@ public class EtcdLeaderAutoConfiguration {
 		return new DefaultCandidate(lep.getId(), lep.getRole());
 	}
 
-	@Bean(destroyMethod = "")
+	@Bean
 	public EtcdClient etcdInstance() {
 		URI[] uris = new URI[ecp.getConnect().size()];
 		for (int i = 0; i < ecp.getConnect().size(); i ++) {
