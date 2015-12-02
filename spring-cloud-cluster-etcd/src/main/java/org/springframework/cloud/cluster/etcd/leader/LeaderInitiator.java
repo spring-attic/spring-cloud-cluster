@@ -220,10 +220,10 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 			client.delete(baseEtcdPath).prevValue(candidate.getId()).send().get();
 		}
 		catch (EtcdException e) {
-			LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to delete candidate key from etcd", e); 
+			LoggerFactory.getLogger(getClass()).warn("Couldn't delete candidate key from etcd", e); 
 		}
 		catch (IOException | TimeoutException e) {
-			LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to access etcd", e);
+			LoggerFactory.getLogger(getClass()).warn("Couldn't access etcd", e);
 		}
 	}
 
@@ -259,19 +259,13 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		public Void call() {
 			try {
 				while (running) {
-					try {
-						if (isLeader) {
-							sendHeartBeat();
-						}
-						else {
-							tryAcquire();
-						}
-						TimeUnit.SECONDS.sleep(HEART_BEAT_SLEEP);
+					if (isLeader) {
+						sendHeartBeat();
 					}
-					catch (IOException | TimeoutException e) {
-						LoggerFactory.getLogger(getClass()).warn("Exception occurred while trying to access etcd", e);
-						// Continue
+					else {
+						tryAcquire();
 					}
+					TimeUnit.SECONDS.sleep(HEART_BEAT_SLEEP);
 				}
 			}
 			catch (InterruptedException e) {
@@ -289,16 +283,19 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		/**
 		 * Sends a heart beat to maintain leadership by refreshing the ttl of the etcd key.
 		 * If the key has a different value during the call, it is assumed that the current
-		 * candidate's leadership is revoked.
-		 * 
-		 * @throws IOException	if the call to {@link EtcdClient} throws a {@link IOException}.
-		 * @throws TimeoutException	if the call to {@link EtcdClient} throws a {@link TimeoutException}.
+		 * candidate's leadership is revoked. If access to etcd fails, then the the current
+		 * candidate's leadership is relinquished.
 		 */
-		private void sendHeartBeat() throws IOException, TimeoutException {
+		private void sendHeartBeat() {
 			try {
 				client.put(baseEtcdPath, candidate.getId()).ttl(TTL).prevValue(candidate.getId()).send().get();
 			}
 			catch (EtcdException e) {
+				notifyRevoked();
+			}
+			catch (IOException | TimeoutException e) {
+				// Couldn't access etcd, therefore, relinquish leadership
+				LoggerFactory.getLogger(getClass()).warn("Couldn't access etcd", e);
 				notifyRevoked();
 			}
 		}
@@ -306,17 +303,18 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		/**
 		 * Tries to acquire leadership by posting the candidate's id to etcd. If the etcd call
 		 * is successful, it is assumed that the current candidate is now leader.
-		 * 
-		 * @throws IOException	if the call to {@link EtcdClient} throws a {@link IOException}.
-		 * @throws TimeoutException	if the call to {@link EtcdClient} throws a {@link TimeoutException}.
 		 */
-		private void tryAcquire() throws IOException, TimeoutException {
+		private void tryAcquire() {
 			try {
 				client.put(baseEtcdPath, candidate.getId()).ttl(TTL).prevExist(false).send().get();
 				notifyGranted();
 			}
 			catch (EtcdException e) {
 				// Couldn't set the value to current candidate's id, therefore, keep trying.
+			}
+			catch (IOException | TimeoutException e) {
+				// Couldn't access etcd, therefore, keep trying.
+				LoggerFactory.getLogger(getClass()).warn("Couldn't access etcd", e);
 			}
 		}
 
