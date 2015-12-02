@@ -324,7 +324,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 			}
 			catch (IOException | TimeoutException e) {
 				// Couldn't access etcd, therefore, relinquish leadership
-				LoggerFactory.getLogger(getClass()).warn("Couldn't access etcd", e);
+				LoggerFactory.getLogger(getClass()).error("Couldn't access etcd, relinquishing leadership...", e);
 				notifyRevoked();
 			}
 		}
