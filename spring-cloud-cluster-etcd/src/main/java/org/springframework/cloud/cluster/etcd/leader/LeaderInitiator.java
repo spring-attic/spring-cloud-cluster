@@ -90,6 +90,12 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	private volatile boolean isLeader = false;
 	
 	/**
+	 * Flag that indicates whether the current candidate's
+	 * leadership should be relinquished.
+	 */
+	private volatile boolean relinquishLeadership = false;
+	
+	/**
 	 * Future returned by submitting a {@link Initiator} to {@link #leaderExecutorService}.
 	 * This is used to cancel leadership.
 	 */
@@ -220,7 +226,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 			client.delete(baseEtcdPath).prevValue(candidate.getId()).send().get();
 		}
 		catch (EtcdException e) {
-			LoggerFactory.getLogger(getClass()).warn("Couldn't delete candidate key from etcd", e); 
+			LoggerFactory.getLogger(getClass()).warn("Couldn't delete candidate's entry from etcd", e); 
 		}
 		catch (IOException | TimeoutException e) {
 			LoggerFactory.getLogger(getClass()).warn("Couldn't access etcd", e);
@@ -237,6 +243,17 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		public Void call() {
 			try {
 				candidate.onGranted(context);
+			}
+			catch (InterruptedException e) {
+				// If the candidate's leadership was revoked
+				Thread.currentThread().interrupt();
+			}
+			catch (Throwable t) {
+				relinquishLeadership = true;
+				LoggerFactory.getLogger(getClass()).error("Some error occurred while "
+						+ "executing candidate's grant callback, relinquishing leadership...", t);
+			}
+			try {
 				Thread.sleep(Long.MAX_VALUE);
 			}
 			catch (InterruptedException e) {
@@ -259,7 +276,11 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		public Void call() {
 			try {
 				while (running) {
-					if (isLeader) {
+					if (relinquishLeadership) {
+						relinquishLeadership = false;
+						relinquishLeadership();
+					}
+					else if (isLeader) {
 						sendHeartBeat();
 					}
 					else {
@@ -273,11 +294,19 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 			}
 			finally {
 				if (isLeader) {
-					tryDeleteCandidateEntry();
-					notifyRevoked();
+					relinquishLeadership();
 				}
 			}
 			return null;
+		}
+
+		/**
+		 * Relinquishes leadership of current candidate by deleting candidate's entry from
+		 * etcd and then notifies that the current candidate is no longer leader.
+		 */
+		private void relinquishLeadership() {
+			tryDeleteCandidateEntry();
+			notifyRevoked();
 		}
 
 		/**
@@ -333,8 +362,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		@Override
 		public void yield() {
 			if (isLeader) {
-				tryDeleteCandidateEntry();
-				notifyRevoked();
+				relinquishLeadership = true;
 			}
 		}
 
