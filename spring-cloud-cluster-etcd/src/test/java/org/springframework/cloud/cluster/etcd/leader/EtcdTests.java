@@ -50,7 +50,7 @@ public class EtcdTests {
 
 	@Test
 	public void testSimpleLeader() throws InterruptedException {
-		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(Config1.class);
+		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(SimpleTestConfig.class);
 		TestCandidate candidate = ctx.getBean(TestCandidate.class);
 		TestEventListener listener = ctx.getBean(TestEventListener.class);
 		assertThat(candidate.onGrantedLatch.await(5, TimeUnit.SECONDS), is(true));
@@ -65,8 +65,8 @@ public class EtcdTests {
 		YieldTestCandidate candidate = ctx.getBean(YieldTestCandidate.class);
 		YieldTestEventListener listener = ctx.getBean(YieldTestEventListener.class);
 		assertThat(candidate.onGrantedLatch.await(5, TimeUnit.SECONDS), is(true));
-		assertThat(candidate.onRevokedLatch.await(5, TimeUnit.SECONDS), is(true));
-		assertThat(listener.onEventsLatch.await(10, TimeUnit.SECONDS), is(true));
+		assertThat(candidate.onRevokedLatch.await(10, TimeUnit.SECONDS), is(true));
+		assertThat(listener.onEventsLatch.await(1, TimeUnit.MILLISECONDS), is(true));
 		assertThat(listener.events.size(), is(2));
 		ctx.close();
 	}
@@ -79,14 +79,26 @@ public class EtcdTests {
 		assertThat(candidate.onGrantedLatch.await(5, TimeUnit.SECONDS), is(true));
 		Thread.sleep(2000); // Let the grant-notification thread run for a while
 		candidate.ctx.yield(); // Internally interrupts the grant notification thread
-		assertThat(candidate.onRevokedLatch.await(5, TimeUnit.SECONDS), is(true));
-		assertThat(listener.onEventsLatch.await(10, TimeUnit.SECONDS), is(true));
+		assertThat(candidate.onRevokedLatch.await(10, TimeUnit.SECONDS), is(true));
+		assertThat(listener.onEventsLatch.await(1, TimeUnit.MILLISECONDS), is(true));
+		assertThat(listener.events.size(), is(2));
+		ctx.close();
+	}
+	
+	@Test
+	public void testFailingCandidateGrantCallback() throws InterruptedException {
+		AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(FailingCandidateTestConfig.class);
+		FailingTestCandidate candidate = ctx.getBean(FailingTestCandidate.class);
+		YieldTestEventListener listener = ctx.getBean(YieldTestEventListener.class);
+		assertThat(candidate.onGrantedLatch.await(5, TimeUnit.SECONDS), is(true));
+		assertThat(candidate.onRevokedLatch.await(10, TimeUnit.SECONDS), is(true));
+		assertThat(listener.onEventsLatch.await(1, TimeUnit.MILLISECONDS), is(true));
 		assertThat(listener.events.size(), is(2));
 		ctx.close();
 	}
 
 	@Configuration
-	static class Config1 {
+	static class SimpleTestConfig {
 
 		@Bean
 		public TestCandidate candidate() {
@@ -267,6 +279,58 @@ public class EtcdTests {
 		@Override
 		public void onRevoked(Context ctx) {
 			LoggerFactory.getLogger(getClass()).info("{} leadership has been revoked", this, ctx);
+			onRevokedLatch.countDown();
+		}
+
+	}
+	
+	@Configuration
+	static class FailingCandidateTestConfig {
+
+		@Bean
+		public FailingTestCandidate candidate() {
+			return new FailingTestCandidate();
+		}
+
+		@Bean
+		public EtcdClient etcdInstance() {
+			return new EtcdClient(URI.create("http://localhost:4001"));
+		}
+
+		@Bean
+		public LeaderInitiator initiator() {
+			LeaderInitiator initiator = new LeaderInitiator(etcdInstance(), candidate(), "etcd-failing-candidate-test");
+			initiator.setLeaderEventPublisher(leaderEventPublisher());
+			return initiator;
+		}
+
+		@Bean
+		public LeaderEventPublisher leaderEventPublisher() {
+			return new DefaultLeaderEventPublisher();
+		}		
+		
+		@Bean
+		public YieldTestEventListener testEventListener() {
+			return new YieldTestEventListener();
+		}
+		
+	}
+	
+	static class FailingTestCandidate extends DefaultCandidate {
+
+		CountDownLatch onGrantedLatch = new CountDownLatch(1);
+		CountDownLatch onRevokedLatch = new CountDownLatch(1);
+
+		@Override
+		public void onGranted(Context ctx) {
+			super.onGranted(ctx);
+			onGrantedLatch.countDown();
+			throw new RuntimeException("Candidate grant callback failure");
+		}
+		
+		@Override
+		public void onRevoked(Context ctx) {
+			super.onRevoked(ctx);
 			onRevokedLatch.countDown();
 		}
 
