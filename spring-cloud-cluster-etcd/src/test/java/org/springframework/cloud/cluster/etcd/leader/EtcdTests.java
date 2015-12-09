@@ -92,7 +92,7 @@ public class EtcdTests {
 		YieldTestEventListener listener = ctx.getBean(YieldTestEventListener.class);
 		assertThat(candidate.onGrantedLatch.await(5, TimeUnit.SECONDS), is(true));
 		assertThat(candidate.onRevokedLatch.await(10, TimeUnit.SECONDS), is(true));
-		assertThat(listener.onEventsLatch.await(1, TimeUnit.MILLISECONDS), is(true));
+		assertThat(listener.onEventsLatch.await(10, TimeUnit.SECONDS), is(true));
 		assertThat(listener.events.size(), is(2));
 		ctx.close();
 	}
