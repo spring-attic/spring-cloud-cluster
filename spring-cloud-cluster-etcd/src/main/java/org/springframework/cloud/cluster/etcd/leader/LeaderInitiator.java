@@ -199,8 +199,8 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		stop();
 		workerExecutorService.shutdown();
 		leaderExecutorService.shutdown();
-		workerExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-		leaderExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+		workerExecutorService.awaitTermination(30, TimeUnit.SECONDS);
+		leaderExecutorService.awaitTermination(30, TimeUnit.SECONDS);
 	}
 	
 	/**
