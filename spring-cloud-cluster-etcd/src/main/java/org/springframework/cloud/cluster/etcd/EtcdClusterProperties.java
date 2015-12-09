@@ -15,9 +15,6 @@
  */
 package org.springframework.cloud.cluster.etcd;
 
-import java.util.Collections;
-import java.util.List;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -31,8 +28,8 @@ public class EtcdClusterProperties {
 	/** etcd namespace */
 	private String namespace;
 	
-	/** connect urls for etcd */
-	private List<String> connect = Collections.singletonList("http://localhost:4001");
+	/** comma separated connect urls for etcd */
+	private String connect = "http://localhost:4001";
 	
 	/** etcd leader properties. */
 	private EtcdLeaderProperties leader = new EtcdLeaderProperties();
@@ -45,11 +42,11 @@ public class EtcdClusterProperties {
 		this.namespace = namespace;
 	}
 
-	public List<String> getConnect() {
+	public String getConnect() {
 		return connect;
 	}
 
-	public void setConnect(List<String> connect) {
+	public void setConnect(String connect) {
 		this.connect = connect;
 	}
 

@@ -31,6 +31,7 @@ import org.springframework.cloud.cluster.leader.LeaderElectionProperties;
 import org.springframework.cloud.cluster.leader.event.LeaderEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
 
 import mousio.etcd4j.EtcdClient;
 
@@ -65,9 +66,10 @@ public class EtcdLeaderAutoConfiguration {
 
 	@Bean
 	public EtcdClient etcdInstance() {
-		URI[] uris = new URI[ecp.getConnect().size()];
-		for (int i = 0; i < ecp.getConnect().size(); i ++) {
-			uris[i] = URI.create(ecp.getConnect().get(i));
+		String[] uriList = StringUtils.commaDelimitedListToStringArray(ecp.getConnect());
+		URI[] uris = new URI[uriList.length];
+		for (int i = 0; i < uriList.length; i ++) {
+			uris[i] = URI.create(uriList[i]);
 		}
 		return new EtcdClient(uris);
 	}
