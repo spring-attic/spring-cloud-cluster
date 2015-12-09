@@ -33,8 +33,10 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.cloud.cluster.leader.Candidate;
 import org.springframework.cloud.cluster.leader.Context;
+import org.springframework.cloud.cluster.leader.event.DefaultLeaderEventPublisher;
 import org.springframework.cloud.cluster.leader.event.LeaderEventPublisher;
 import org.springframework.context.Lifecycle;
+import org.springframework.util.Assert;
 
 import mousio.etcd4j.EtcdClient;
 import mousio.etcd4j.responses.EtcdException;
@@ -45,6 +47,7 @@ import mousio.etcd4j.responses.EtcdException;
  * register the candidate for leadership election.
  *
  * @author Venil Noronha
+ * @author Patrick Peralta
  */
 public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableBean {
 
@@ -130,9 +133,9 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	private volatile boolean running;
 
 	/**
-	 * Leader event publisher if set.
+	 * Leader event publisher.
 	 */
-	private LeaderEventPublisher leaderEventPublisher;
+	private volatile LeaderEventPublisher leaderEventPublisher = new DefaultLeaderEventPublisher();
 
 	/**
 	 * The {@link EtcdContext} instance.
@@ -209,6 +212,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	 * @param leaderEventPublisher the event publisher
 	 */
 	public void setLeaderEventPublisher(LeaderEventPublisher leaderEventPublisher) {
+		Assert.notNull(leaderEventPublisher);
 		this.leaderEventPublisher = leaderEventPublisher;
 	}
 
@@ -217,9 +221,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	 */
 	private void notifyGranted() {
 		isLeader = true;
-		if (leaderEventPublisher != null) {
-			leaderEventPublisher.publishOnGranted(LeaderInitiator.this, context, candidate.getRole());
-		}
+		leaderEventPublisher.publishOnGranted(LeaderInitiator.this, context, candidate.getRole());
 		workerFuture = workerExecutorService.submit(new Worker());
 	}
 
@@ -231,9 +233,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	 */
 	private void notifyRevoked() throws InterruptedException {
 		isLeader = false;
-		if (leaderEventPublisher != null) {
-			leaderEventPublisher.publishOnRevoked(LeaderInitiator.this, context, candidate.getRole());
-		}
+		leaderEventPublisher.publishOnRevoked(LeaderInitiator.this, context, candidate.getRole());
 		workerFuture.cancel(true);
 		try {
 			workerFuture.get();

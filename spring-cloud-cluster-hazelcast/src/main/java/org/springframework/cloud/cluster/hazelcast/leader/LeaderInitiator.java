@@ -27,6 +27,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.cloud.cluster.leader.Candidate;
 import org.springframework.cloud.cluster.leader.Context;
+import org.springframework.cloud.cluster.leader.event.DefaultLeaderEventPublisher;
 import org.springframework.cloud.cluster.leader.event.LeaderEventPublisher;
 import org.springframework.context.Lifecycle;
 import org.springframework.util.Assert;
@@ -83,8 +84,10 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	 */
 	private volatile boolean running;
 
-	/** Leader event publisher if set */
-	private LeaderEventPublisher leaderEventPublisher;
+	/**
+	 * Leader event publisher.
+	 */
+	private volatile LeaderEventPublisher leaderEventPublisher = new DefaultLeaderEventPublisher();
 
 	/**
 	 * Construct a {@link LeaderInitiator}.
@@ -146,6 +149,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 	 * @param leaderEventPublisher the event publisher
 	 */
 	public void setLeaderEventPublisher(LeaderEventPublisher leaderEventPublisher) {
+		Assert.notNull(leaderEventPublisher);
 		this.leaderEventPublisher = leaderEventPublisher;
 	}
 
@@ -167,10 +171,8 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 					locked = mapLocks.tryLock(role, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
 					if (locked) {
 						mapLocks.put(role, candidate.getId());
+						leaderEventPublisher.publishOnGranted(LeaderInitiator.this, context, candidate.getRole());
 						candidate.onGranted(context);
-						if (leaderEventPublisher != null) {
-							leaderEventPublisher.publishOnGranted(LeaderInitiator.this, context, candidate.getRole());
-						}
 						Thread.sleep(Long.MAX_VALUE);
 					}
 				}
@@ -184,9 +186,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 						mapLocks.remove(role);
 						mapLocks.unlock(role);
 						candidate.onRevoked(context);
-						if (leaderEventPublisher != null) {
-							leaderEventPublisher.publishOnRevoked(LeaderInitiator.this, context, candidate.getRole());
-						}
+						leaderEventPublisher.publishOnRevoked(LeaderInitiator.this, context, candidate.getRole());
 						locked = false;
 					}
 				}

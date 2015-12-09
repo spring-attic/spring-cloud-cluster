@@ -23,8 +23,10 @@ import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.cloud.cluster.leader.Candidate;
 import org.springframework.cloud.cluster.leader.Context;
+import org.springframework.cloud.cluster.leader.event.DefaultLeaderEventPublisher;
 import org.springframework.cloud.cluster.leader.event.LeaderEventPublisher;
 import org.springframework.context.SmartLifecycle;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 /**
@@ -34,8 +36,6 @@ import org.springframework.util.StringUtils;
  *
  * @author Patrick Peralta
  * @author Janne Valkealahti
- * @author Gary Russell
- *
  */
 public class LeaderInitiator implements SmartLifecycle, DisposableBean {
 
@@ -78,9 +78,9 @@ public class LeaderInitiator implements SmartLifecycle, DisposableBean {
 	private final String namespace;
 
 	/**
-	 * Leader event publisher if set.
+	 * Leader event publisher.
 	 */
-	private volatile LeaderEventPublisher leaderEventPublisher;
+	private volatile LeaderEventPublisher leaderEventPublisher = new DefaultLeaderEventPublisher();
 
 	/**
 	 * Construct a {@link LeaderInitiator}.
@@ -190,6 +190,7 @@ public class LeaderInitiator implements SmartLifecycle, DisposableBean {
 	 * @param leaderEventPublisher the event publisher
 	 */
 	public void setLeaderEventPublisher(LeaderEventPublisher leaderEventPublisher) {
+		Assert.notNull(leaderEventPublisher);
 		this.leaderEventPublisher = leaderEventPublisher;
 	}
 
@@ -197,7 +198,6 @@ public class LeaderInitiator implements SmartLifecycle, DisposableBean {
 	 * @return the ZooKeeper path used for leadership election by Curator
 	 */
 	private String buildLeaderPath() {
-
 		String ns = StringUtils.hasText(namespace) ? namespace : DEFAULT_NAMESPACE;
 		if (!ns.startsWith("/")) {
 			ns = "/" + ns;
@@ -218,10 +218,8 @@ public class LeaderInitiator implements SmartLifecycle, DisposableBean {
 			CuratorContext context = new CuratorContext();
 
 			try {
+				leaderEventPublisher.publishOnGranted(LeaderInitiator.this, context, candidate.getRole());
 				candidate.onGranted(context);
-				if (leaderEventPublisher != null) {
-					leaderEventPublisher.publishOnGranted(LeaderInitiator.this, context, candidate.getRole());
-				}
 
 				// when this method exits, the leadership will be revoked;
 				// therefore this thread needs to be held up until the
@@ -235,9 +233,7 @@ public class LeaderInitiator implements SmartLifecycle, DisposableBean {
 			}
 			finally {
 				candidate.onRevoked(context);
-				if (leaderEventPublisher != null) {
-					leaderEventPublisher.publishOnRevoked(LeaderInitiator.this, context, candidate.getRole());
-				}
+				leaderEventPublisher.publishOnRevoked(LeaderInitiator.this, context, candidate.getRole());
 			}
 		}
 	}
