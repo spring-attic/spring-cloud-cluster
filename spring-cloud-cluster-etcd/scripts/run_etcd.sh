@@ -15,4 +15,4 @@ while [ -h "$PRG" ] ; do
 done
 cd "`dirname \"$PRG\"`/../"
 
-docker-compose up
+docker-compose up -d
