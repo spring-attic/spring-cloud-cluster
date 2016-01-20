@@ -86,13 +86,13 @@ created during auto-configuration.
 Zookeeper based election can be explicitly disabled using property
 `spring.cloud.cluster.zookeeper.leader.enabled`.
 
-Other propertys `spring.cloud.cluster.zookeeper.namespace` and
+Other properties `spring.cloud.cluster.zookeeper.namespace` and
 `spring.cloud.cluster.zookeeper.connect` can be used to set the
 zookeeper base namespace path and connect string.
 
 [[spring-cloud-cluster-leaderelection-hazelcast]]
 === Hazelcast
-`Candidate` implementation for zookeeper is created with a bean name
+`Candidate` implementation for hazelcast is created with a bean name
 `hazelcastLeaderCandidate` which can be used to override the one
 created during auto-configuration.
 
