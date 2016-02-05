@@ -47,31 +47,31 @@
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-cluster-dependencies</artifactId>
 				<version>${project.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
+				<type>pom</type>
+				<scope>import</scope>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
 
-<build>
-	<plugins>
-		<plugin>
-			<artifactId>maven-failsafe-plugin</artifactId>
-			<configuration>
-				<skipITs>${skipITs}</skipITs>
-			</configuration>
-			<executions>
-				<execution>
-					<phase>package</phase>
-					<goals>
-						<goal>integration-test</goal>
-						<goal>verify</goal>
-					</goals>
-				</execution>
-			</executions>
-		</plugin>
-	</plugins>
-</build>
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<configuration>
+					<skipITs>${skipITs}</skipITs>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 
 	<profiles>
 		<profile>
