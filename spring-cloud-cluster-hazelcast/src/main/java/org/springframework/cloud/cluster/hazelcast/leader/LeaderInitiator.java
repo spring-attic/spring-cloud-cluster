@@ -40,6 +40,7 @@ import com.hazelcast.core.IMap;
  * register the candidate for leadership election.
  *
  * @author Patrick Peralta
+ * @author Gary Russell
  */
 public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableBean {
 
@@ -84,7 +85,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 
 	/** Leader event publisher if set */
 	private LeaderEventPublisher leaderEventPublisher;
-	
+
 	/**
 	 * Construct a {@link LeaderInitiator}.
 	 *
@@ -138,16 +139,16 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 		stop();
 		executorService.shutdown();
 	}
-	
+
 	/**
 	 * Sets the {@link LeaderEventPublisher}.
-	 * 
+	 *
 	 * @param leaderEventPublisher the event publisher
 	 */
 	public void setLeaderEventPublisher(LeaderEventPublisher leaderEventPublisher) {
 		this.leaderEventPublisher = leaderEventPublisher;
 	}
-	
+
 	/**
 	 * Callable that manages the acquisition of Hazelcast locks
 	 * for leadership election.
@@ -168,7 +169,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 						mapLocks.put(role, candidate.getId());
 						candidate.onGranted(context);
 						if (leaderEventPublisher != null) {
-							leaderEventPublisher.publishOnGranted(LeaderInitiator.this, context);
+							leaderEventPublisher.publishOnGranted(LeaderInitiator.this, context, candidate.getRole());
 						}
 						Thread.sleep(Long.MAX_VALUE);
 					}
@@ -184,7 +185,7 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 						mapLocks.unlock(role);
 						candidate.onRevoked(context);
 						if (leaderEventPublisher != null) {
-							leaderEventPublisher.publishOnRevoked(LeaderInitiator.this, context);
+							leaderEventPublisher.publishOnRevoked(LeaderInitiator.this, context, candidate.getRole());
 						}
 						locked = false;
 					}

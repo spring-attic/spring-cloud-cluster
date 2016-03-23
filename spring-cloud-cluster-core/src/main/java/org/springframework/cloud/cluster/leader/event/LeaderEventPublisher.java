@@ -21,24 +21,27 @@ import org.springframework.cloud.cluster.leader.Context;
  * Interface for publishing leader based application events.
  *
  * @author Janne Valkealahti
+ * @author Gary Russell
  *
  */
 public interface LeaderEventPublisher {
 
 	/**
 	 * Publish a granted event.
-	 * 
+	 *
 	 * @param source the component generated this event
 	 * @param context the context associated with event
+	 * @param role the role of the leader
 	 */
-	void publishOnGranted(Object source, Context context);
+	void publishOnGranted(Object source, Context context, String role);
 
 	/**
 	 * Publish a revoked event.
-	 * 
+	 *
 	 * @param source the component generated this event
 	 * @param context the context associated with event
+	 * @param role the role of the leader
 	 */
-	void publishOnRevoked(Object source, Context context);
-	
+	void publishOnRevoked(Object source, Context context, String role);
+
 }

@@ -21,8 +21,9 @@ import org.springframework.context.ApplicationEventPublisherAware;
 
 /**
  * Default implementation of {@link LeaderEventPublisher}.
- * 
+ *
  * @author Janne Valkealahti
+ * @author Gary Russell
  *
  */
 public class DefaultLeaderEventPublisher implements LeaderEventPublisher, ApplicationEventPublisherAware {
@@ -37,24 +38,24 @@ public class DefaultLeaderEventPublisher implements LeaderEventPublisher, Applic
 
 	/**
 	 * Instantiates a new leader event publisher.
-	 * 
+	 *
 	 * @param applicationEventPublisher the application event publisher
 	 */
 	public DefaultLeaderEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
 		this.applicationEventPublisher = applicationEventPublisher;
 	}
-	
+
 	@Override
-	public void publishOnGranted(Object source, Context context) {
+	public void publishOnGranted(Object source, Context context, String role) {
 		if (applicationEventPublisher != null) {
-			applicationEventPublisher.publishEvent(new OnGrantedEvent(source, context));
+			applicationEventPublisher.publishEvent(new OnGrantedEvent(source, context, role));
 		}
 	}
 
 	@Override
-	public void publishOnRevoked(Object source, Context context) {
+	public void publishOnRevoked(Object source, Context context, String role) {
 		if (applicationEventPublisher != null) {
-			applicationEventPublisher.publishEvent(new OnRevokedEvent(source, context));
+			applicationEventPublisher.publishEvent(new OnRevokedEvent(source, context, role));
 		}
 	}
 
@@ -62,5 +63,5 @@ public class DefaultLeaderEventPublisher implements LeaderEventPublisher, Applic
 	public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
 		this.applicationEventPublisher = applicationEventPublisher;
 	}
-	
+
 }
