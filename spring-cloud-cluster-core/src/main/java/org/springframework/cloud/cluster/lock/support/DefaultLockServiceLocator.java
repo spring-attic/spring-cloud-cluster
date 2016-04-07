@@ -15,7 +15,8 @@
  */
 package org.springframework.cloud.cluster.lock.support;
 
-import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.springframework.cloud.cluster.lock.LockService;
 import org.springframework.cloud.cluster.lock.LockServiceLocator;
@@ -24,21 +25,20 @@ import org.springframework.util.Assert;
 import org.springframework.util.PathMatcher;
 
 /**
- * Default implementation of a {@link LockServiceLocator} which
- * uses a set of {@link LockService}s where matching happens using
- * a simple {@link PathMatcher}.
+ * Default implementation of a {@link LockServiceLocator} which uses a set of
+ * {@link LockService}s where matching happens using a simple {@link PathMatcher}.
  * 
  * @author Janne Valkealahti
  *
  */
 public class DefaultLockServiceLocator implements LockServiceLocator {
-	
-	private final ArrayList<PathMapping> mappings = new ArrayList<PathMapping>();
-	
+
+	private final List<PathMapping> mappings = new CopyOnWriteArrayList<PathMapping>();
+
 	private final PathMatcher matcher = new AntPathMatcher();
-	
+
 	private final LockService fallback;
-	
+
 	/**
 	 * Instantiates a new default lock service locator.
 	 *
@@ -54,7 +54,7 @@ public class DefaultLockServiceLocator implements LockServiceLocator {
 		LockService match = match(lockKey);
 		return match != null ? match : fallback;
 	}
-	
+
 	/**
 	 * Adds a mapping path for lock service.
 	 *
@@ -65,7 +65,7 @@ public class DefaultLockServiceLocator implements LockServiceLocator {
 		Assert.notNull(lockService, "Lock service must not be null");
 		mappings.add(new PathMapping(path, lockService));
 	}
-	
+
 	private LockService match(String path) {
 		for (PathMapping m : mappings) {
 			if (matcher.match(m.getPath(), path)) {
@@ -74,26 +74,26 @@ public class DefaultLockServiceLocator implements LockServiceLocator {
 		}
 		return null;
 	}
-	
+
 	private static class PathMapping {
-		
+
 		private String path;
-		
+
 		private LockService lockService;
-		
+
 		public PathMapping(String path, LockService lockService) {
 			this.path = path;
 			this.lockService = lockService;
 		}
-		
+
 		public String getPath() {
 			return path;
 		}
-		
+
 		public LockService getLockService() {
 			return lockService;
 		}
-		
+
 	}
 
 }
