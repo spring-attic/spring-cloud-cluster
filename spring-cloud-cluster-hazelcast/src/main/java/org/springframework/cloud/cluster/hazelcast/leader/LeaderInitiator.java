@@ -34,6 +34,8 @@ import org.springframework.util.Assert;
 
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Bootstrap leadership {@link org.springframework.cloud.cluster.leader.Candidate candidates}
@@ -44,6 +46,8 @@ import com.hazelcast.core.IMap;
  * @author Gary Russell
  */
 public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableBean {
+
+	private static final Logger logger = LoggerFactory.getLogger(LeaderInitiator.class);
 
 	/**
 	 * Hazelcast client.
@@ -176,10 +180,15 @@ public class LeaderInitiator implements Lifecycle, InitializingBean, DisposableB
 						Thread.sleep(Long.MAX_VALUE);
 					}
 				}
-				catch (InterruptedException e) {
-					// InterruptedException, like any other runtime exception,
-					// is handled by the finally block below. No need to
-					// reset the interrupt flag as the interrupt is handled.
+				catch (Exception e) {
+					// Catch and log any exceptions. This prevents the
+					// call method from exiting so that another attempt
+					// at acquiring leadership may be made.
+					// There is no need to reset the interrupt flag
+					// on InterruptedException because the interrupt
+					// is handled in the finally block below (just like
+					// any other exception)
+					logger.warn("Exception caught", e);
 				}
 				finally {
 					if (locked) {
