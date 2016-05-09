@@ -7,7 +7,7 @@
 	<packaging>pom</packaging>
 	<name>spring-cloud-cluster</name>
 	<description>Spring Cloud Cluster</description>
-	<version>1.0.0.BUILD-SNAPSHOT</version>
+	<version>1.0.0.RELEASE</version>
 
 	<parent>
 		<groupId>org.springframework.cloud</groupId>
