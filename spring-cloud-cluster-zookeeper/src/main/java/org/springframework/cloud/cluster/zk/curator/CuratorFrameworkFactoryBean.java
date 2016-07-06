@@ -21,7 +21,6 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.utils.CloseableUtils;
-
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.util.Assert;
@@ -31,7 +30,9 @@ import org.springframework.util.Assert;
  *
  * @author Gary Russell
  *
+ * @deprecated in favour of equivalent functionality in Spring Integration 4.3
  */
+@Deprecated
 public class CuratorFrameworkFactoryBean implements FactoryBean<CuratorFramework>, SmartLifecycle {
 
 	private final Object lifecycleLock = new Object();

@@ -22,14 +22,16 @@ package org.springframework.cloud.cluster.leader;
  *
  * @author Patrick Peralta
  * @author Janne Valkealahti
- * 
+ *
+ * @deprecated in favour of equivalent functionality in Spring Integration 4.3
  */
+@Deprecated
 public interface Context {
 
 	/**
 	 * Checks if the {@link Candidate} this context was
 	 * passed to is the leader.
-	 * 
+	 *
 	 * @return true if the {@link Candidate} this context was
 	 *         passed to is the leader
 	 */

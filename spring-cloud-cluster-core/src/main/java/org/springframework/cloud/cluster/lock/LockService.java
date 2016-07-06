@@ -21,18 +21,20 @@ package org.springframework.cloud.cluster.lock;
  * service is always backed by a real locking service
  * bound to a real distributed system like zookeeper
  * or redis.
- * 
+ *
  * @author Janne Valkealahti
  *
+ * @deprecated in favour of equivalent functionality in Spring Integration 4.3
  */
+@Deprecated
 public interface LockService {
-	
+
 	/**
 	 * Obtains a {@link DistributedLock} from a service. Obtaining
 	 * a lock should not do any locking operations like trying
 	 * a lock. All possible locking actions should be left to a user
 	 * to be executed via {@link DistributedLock}.
-	 * 
+	 *
 	 * @param lockKey the locking key
 	 * @return distributed lock
 	 */

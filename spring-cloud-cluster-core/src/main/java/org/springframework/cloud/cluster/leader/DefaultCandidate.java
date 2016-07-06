@@ -21,7 +21,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Simple {@link org.springframework.cloud.cluster.leader.Candidate} for leadership.
  * This implementation simply logs when it is elected and when its leadership is revoked.
+ * @deprecated in favour of equivalent functionality in Spring Integration 4.3
  */
+@Deprecated
 public class DefaultCandidate extends AbstractCandidate {
 
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -37,7 +39,7 @@ public class DefaultCandidate extends AbstractCandidate {
 
 	/**
 	 * Instantiate a default candidate.
-	 * 
+	 *
 	 * @param id the identifier
 	 * @param role the role
 	 */
@@ -47,13 +49,13 @@ public class DefaultCandidate extends AbstractCandidate {
 
 	@Override
 	public void onGranted(Context ctx) {
-		logger.info("{} has been granted leadership; context: {}", this, ctx);
-		leaderContext = ctx;
+		this.logger.info("{} has been granted leadership; context: {}", this, ctx);
+		this.leaderContext = ctx;
 	}
 
 	@Override
 	public void onRevoked(Context ctx) {
-		logger.info("{} leadership has been revoked", this, ctx);
+		this.logger.info("{} leadership has been revoked", this, ctx);
 	}
 
 	/**
@@ -63,8 +65,8 @@ public class DefaultCandidate extends AbstractCandidate {
 	 * leader initiator.
 	 */
 	public void yieldLeadership() {
-		if (leaderContext != null) {
-			leaderContext.yield();			
+		if (this.leaderContext != null) {
+			this.leaderContext.yield();
 		}
 	}
 

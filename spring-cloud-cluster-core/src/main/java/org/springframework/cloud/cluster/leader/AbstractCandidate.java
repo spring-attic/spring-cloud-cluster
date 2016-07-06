@@ -21,18 +21,20 @@ import org.springframework.util.StringUtils;
 
 /**
  * Base implementation of a {@link Candidate}.
- * 
+ *
  * @author Janne Valkealahti
  *
+ * @deprecated in favour of equivalent functionality in Spring Integration 4.3
  */
+@Deprecated
 public abstract class AbstractCandidate implements Candidate {
 
 	private static final String DEFAULT_ROLE = "leader";
-	
+
 	private final String id;
-	
+
 	private final String role;
-	
+
 	/**
 	 * Instantiate a abstract candidate.
 	 */
@@ -42,7 +44,7 @@ public abstract class AbstractCandidate implements Candidate {
 
 	/**
 	 * Instantiate a abstract candidate.
-	 * 
+	 *
 	 * @param id the identifier
 	 * @param role the role
 	 */

@@ -18,28 +18,30 @@ package org.springframework.cloud.cluster.lock;
 /**
  * Lock service locator defines a contract matching a lock
  * key to a {@link LockService}.
- * 
+ *
  * <p>Implementation is free to implement this interface as
  * it wish. Possible implementation can i.e. choose to locate
  * different services based on path matching or any other means
  * which creates a consistent resolving to a service.
- * 
+ *
  * @author Janne Valkealahti
  *
+ * @deprecated in favour of equivalent functionality in Spring Integration 4.3
  */
+@Deprecated
 public interface LockServiceLocator {
 
 	/**
 	 * Locates a bound {@link LockService} for a locking key.
-	 * 
+	 *
 	 * <p>Locate algorithm has to be consistent among different
 	 * JVM's meaning that in all cases a locking key has to resolve
 	 * back to same {@link LockService} where {@link DistributedLock}
 	 * either already exists or will exist once it is created.
-	 * 
+	 *
 	 * @param lockKey the locking key
 	 * @return lock service or null if key is not bound to any service
 	 */
 	LockService locate(String lockKey);
-	
+
 }

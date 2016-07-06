@@ -19,22 +19,24 @@ package org.springframework.cloud.cluster.lock;
  * {@code LockRegistry} implementations provide high
  * level access to obtain {@link DistributedLock}s
  * from a system using a locking key.
- * 
+ *
  * <p>Purpose of this interface is to decouple lock
  * access from their implementing system. Registry may
  * return locks from different systems while {@link LockService}
  * is always bound to a one system. Also implementation may
  * choose to use {@link LockServiceLocator} to find the backing
  * {@link LockService} implementation.
- * 
+ *
  * @author Janne Valkealahti
  *
+ * @deprecated in favour of equivalent functionality in Spring Integration 4.3
  */
+@Deprecated
 public interface LockRegistry {
 
 	/**
 	 * Gets a {@link DistributedLock} from a registry.
-	 * 
+	 *
 	 * @param lockKey the locking key
 	 * @return distributed lock
 	 */

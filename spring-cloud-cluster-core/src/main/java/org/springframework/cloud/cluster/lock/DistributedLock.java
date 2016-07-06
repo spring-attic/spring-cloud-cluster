@@ -19,17 +19,19 @@ import java.util.concurrent.locks.Lock;
 
 /**
  * Distributed implementation of a {@link Lock}.
- * 
+ *
  * @author Janne Valkealahti
  *
+ * @deprecated in favour of equivalent functionality in Spring Integration 4.3
  */
+@Deprecated
 public interface DistributedLock extends Lock {
 
 	/**
 	 * Gets the associated lock key.
-	 * 
+	 *
 	 * @return associated lock key
 	 */
 	String getLockKey();
-	
+
 }
