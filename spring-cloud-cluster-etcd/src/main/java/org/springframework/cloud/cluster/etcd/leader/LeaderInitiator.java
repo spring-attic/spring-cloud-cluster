@@ -42,7 +42,7 @@ import mousio.etcd4j.EtcdClient;
 import mousio.etcd4j.responses.EtcdException;
 
 /**
- * Bootstrap leadership {@link org.springframework.cloud.cluster.leader.Candidate candidates}
+ * Bootstrap leadership {@link Candidate candidates}
  * with etcd. Upon construction, {@link #start} must be invoked to
  * register the candidate for leadership election.
  *
