@@ -1,3 +1,9 @@
+This project is now superseded by code in Spring Integration. All the interfaces
+here have counterparts in the main Spring libraries, and the implementations are
+mostly parallel too (etcd is an exception because of the lack of support for
+v3 in third party libraries). The 1.0.1 release deprecates everything in favour 
+of Spring Integration.
+
 include::intro.adoc[]
 
 == Building
