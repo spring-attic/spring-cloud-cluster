@@ -4,6 +4,10 @@ mostly parallel too (etcd is an exception because of the lack of support for
 v3 in third party libraries). The 1.0.1 release deprecates everything in favour 
 of Spring Integration.
 
+N.B. For Hazelcast the support is in
+https://github.com/spring-projects/spring-integration-extensions/tree/master/spring-integration-hazelcast[an
+extension project].
+
 include::intro.adoc[]
 
 == Building
