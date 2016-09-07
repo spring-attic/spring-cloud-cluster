@@ -1,4 +1,5 @@
 = Spring Cloud Cluster
+:nofooter:
 
 include::intro.adoc[]
 
