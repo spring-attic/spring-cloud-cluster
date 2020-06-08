@@ -8,7 +8,7 @@
 		<artifactId>spring-cloud-cluster</artifactId>
 		<version>1.0.2.RELEASE</version>
 	</parent>
-	<packaging>pom</packaging>
+	<packaging>jar</packaging>
 	<name>spring-cloud-cluster-docs</name>
 	<description>Spring Cloud Docs</description>
 
